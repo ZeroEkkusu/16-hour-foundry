@@ -5,3 +5,6 @@ libs = ['lib']
 remappings = ['ds-test/=lib/ds-test/src/']
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config
+
+[16-hour-foundry]
+remappings = ['chainlink/=lib/chainlink-brownie-contracts/contracts/src/']
