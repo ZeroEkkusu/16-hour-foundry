@@ -8,3 +8,4 @@ remappings = ['ds-test/=lib/ds-test/src/']
 
 [16-hour-foundry]
 remappings = ['chainlink/=lib/chainlink-brownie-contracts/contracts/src/']
+verbosity = 3

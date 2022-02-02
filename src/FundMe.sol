@@ -3,12 +3,14 @@
 pragma solidity ^0.8.0;
 
 import "chainlink/v0.8/interfaces/AggregatorV3Interface.sol";
+import "solmate/utils/SafeTransferLib.sol";
 
 contract FundMe {
     error AmountTooLow(uint256 amount, uint256 minAmount);
+    error Unauthorized();
 
     mapping(address => uint256) public funderToAmount;
-    address[] private funders;
+    address[] public funders;
 
     address public owner;
 
@@ -20,9 +22,9 @@ contract FundMe {
     }
 
     function getMinimumDonationAmount() public view returns (uint256) {
-        uint256 minimumUSD = 50e18;
-        uint256 price = getPrice();
-        return ((minimumUSD * 1e18) / price);
+        uint256 minAmountInUSD = 50e18;
+        uint256 ethPrice = getEthPrice();
+        return ((minAmountInUSD * 1e18) / ethPrice);
     }
 
     function fund() public payable {
@@ -32,13 +34,13 @@ contract FundMe {
         funders.push(msg.sender);
     }
 
-    function getPrice() internal view returns (uint256) {
+    function getEthPrice() public view returns (uint256) {
         (, int256 answer, , , ) = priceFeed.latestRoundData();
         return uint256(answer * 1e10);
     }
 
     function withdraw() public onlyOwner {
-        payable(msg.sender).transfer(address(this).balance);
+        SafeTransferLib.safeTransferETH(msg.sender, address(this).balance);
         for (uint256 i = 0; i < funders.length; i++) {
             funderToAmount[funders[i]] = 0;
         }
@@ -46,7 +48,7 @@ contract FundMe {
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        if (msg.sender != owner) revert Unauthorized();
         _;
     }
 }
