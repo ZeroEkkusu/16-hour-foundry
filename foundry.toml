@@ -2,10 +2,10 @@
 src = 'src'
 out = 'out'
 libs = ['lib']
-remappings = ['ds-test/=lib/ds-test/src/']
+remappings = [
+    'ds-test/=lib/ds-test/src/',
+    'chainlink/=lib/chainlink-brownie-contracts/contracts/src/'
+    ]
+verbosity = 3
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config
-
-[16-hour-foundry]
-remappings = ['chainlink/=lib/chainlink-brownie-contracts/contracts/src/']
-verbosity = 3

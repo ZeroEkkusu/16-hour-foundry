@@ -9,11 +9,13 @@ import "ds-test/test.sol";
 import "./interfaces/ICheatCodes.sol";
 
 contract FundMeUnitTest is DSTest {
-    FundMe fundMe;
-    MockV3Aggregator priceFeed;
+    uint256 constant MIN_AMOUNT_IN_USD = 50e18;
 
-    uint256 constant ethPrice = 1000e18;
-    uint256 constant minAmountInUSD = 50e18;
+    FundMe fundMe;
+    address priceFeedAddr;
+
+    // You can customize me!
+    uint256 ethPrice = 1000e18;
 
     CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
 
@@ -22,14 +24,16 @@ contract FundMeUnitTest is DSTest {
     fallback() external payable {}
 
     function setUp() public {
-        priceFeed = new MockV3Aggregator(8, int256(ethPrice / 1e10));
-        fundMe = new FundMe(address(priceFeed));
+        priceFeedAddr = address(
+            new MockV3Aggregator(8, int256(ethPrice / 1e10))
+        );
+        fundMe = new FundMe(priceFeedAddr);
     }
 
     function testGetMinimumFundingAmount() public {
         assertEq(
             fundMe.getMinimumFundingAmount(),
-            ((minAmountInUSD * 1e18) / ethPrice)
+            ((MIN_AMOUNT_IN_USD * 1e18) / ethPrice)
         );
     }
 
@@ -73,6 +77,10 @@ contract FundMeUnitTest is DSTest {
 }
 
 contract FundMeIntegrationTest is DSTest {
+    // You can customize me!
+    address constant PRICE_FEED_ADDR =
+        0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
+
     FundMe fundMe;
 
     CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
@@ -82,9 +90,7 @@ contract FundMeIntegrationTest is DSTest {
     fallback() external payable {}
 
     function setUp() public {
-        fundMe = new FundMe(
-            address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419)
-        );
+        fundMe = new FundMe(PRICE_FEED_ADDR);
     }
 
     function testBasicIntegration() public {
