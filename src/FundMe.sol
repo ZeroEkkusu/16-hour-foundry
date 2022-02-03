@@ -21,14 +21,14 @@ contract FundMe {
         owner = msg.sender;
     }
 
-    function getMinimumDonationAmount() public view returns (uint256) {
+    function getMinimumFundingAmount() public view returns (uint256) {
         uint256 minAmountInUSD = 50e18;
         uint256 ethPrice = getEthPrice();
         return ((minAmountInUSD * 1e18) / ethPrice);
     }
 
     function fund() public payable {
-        uint256 minAmount = getMinimumDonationAmount();
+        uint256 minAmount = getMinimumFundingAmount();
         if (msg.value < minAmount) revert AmountTooLow(msg.value, minAmount);
         funderToAmount[msg.sender] += msg.value;
         funders.push(msg.sender);

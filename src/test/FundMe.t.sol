@@ -8,7 +8,7 @@ import "./mocks/MockV3Aggregator.sol";
 import "ds-test/test.sol";
 import "./interfaces/ICheatCodes.sol";
 
-contract FundMeTest is DSTest {
+contract FundMeUnitTest is DSTest {
     FundMe fundMe;
     MockV3Aggregator priceFeed;
 
@@ -19,14 +19,16 @@ contract FundMeTest is DSTest {
 
     receive() external payable {}
 
+    fallback() external payable {}
+
     function setUp() public {
         priceFeed = new MockV3Aggregator(8, int256(ethPrice / 1e10));
         fundMe = new FundMe(address(priceFeed));
     }
 
-    function testGetMinimumDonationAmount() public {
+    function testGetMinimumFundingAmount() public {
         assertEq(
-            fundMe.getMinimumDonationAmount(),
+            fundMe.getMinimumFundingAmount(),
             ((minAmountInUSD * 1e18) / ethPrice)
         );
     }
@@ -35,6 +37,19 @@ contract FundMeTest is DSTest {
         assertEq(address(fundMe).balance, 0);
         fundMe.fund{value: 1 ether}();
         assertEq(address(fundMe).balance, 1 ether);
+    }
+
+    function testCannotFund() public {
+        uint256 minAmount = fundMe.getMinimumFundingAmount();
+        uint256 amount = minAmount - 1;
+        cheats.expectRevert(
+            abi.encodeWithSelector(
+                FundMe.AmountTooLow.selector,
+                amount,
+                minAmount
+            )
+        );
+        fundMe.fund{value: amount}();
     }
 
     function testGetEthPrice() public {
@@ -48,11 +63,35 @@ contract FundMeTest is DSTest {
         assertEq(address(this).balance, prevBalance + 1 ether);
     }
 
-    function testBadWithdraw() public {
+    function testCannotWithdraw() public {
         cheats.prank(address(1));
         cheats.expectRevert(
             abi.encodeWithSelector(FundMe.Unauthorized.selector)
         );
         fundMe.withdraw();
+    }
+}
+
+contract FundMeIntegrationTest is DSTest {
+    FundMe fundMe;
+
+    CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
+
+    receive() external payable {}
+
+    fallback() external payable {}
+
+    function setUp() public {
+        fundMe = new FundMe(
+            address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419)
+        );
+    }
+
+    function testBasicIntegration() public {
+        uint256 amount = fundMe.getMinimumFundingAmount();
+        fundMe.fund{value: amount}();
+        uint256 prevBalance = address(this).balance;
+        fundMe.withdraw();
+        assertEq(address(this).balance, prevBalance + amount);
     }
 }
