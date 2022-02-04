@@ -13,10 +13,10 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer {
     uint256 constant MIN_AMOUNT_IN_USD = 50e18;
 
     FundMe fundMe;
-    address priceFeedAddr;
+    address ethUsdPriceFeedAddr;
 
     // You can customize me!
-    uint256 ethPrice = 1000e18;
+    uint256 ethPriceInUsd = 1000e18;
 
     CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
 
@@ -25,17 +25,21 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer {
     fallback() external payable {}
 
     function setUp() public {
-        priceFeedAddr = address(
-            new MockV3Aggregator(8, int256(ethPrice / 1e10))
+        ethUsdPriceFeedAddr = address(
+            new MockV3Aggregator(8, int256(ethPriceInUsd / 1e10))
         );
-        fundMe = new FundMe(priceFeedAddr, authorityAddr);
+        fundMe = new FundMe(ethUsdPriceFeedAddr, authorityAddr);
     }
 
     function testGetMinimumAmount() public {
         assertEq(
             fundMe.getMinimumAmount(),
-            ((MIN_AMOUNT_IN_USD * 1e18) / ethPrice)
+            ((MIN_AMOUNT_IN_USD * 1e18) / ethPriceInUsd)
         );
+    }
+
+    function testGetEthPrice() public {
+        assertEq(fundMe.getEthPriceInUsd(), ethPriceInUsd);
     }
 
     function testFund() public {
@@ -55,10 +59,6 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer {
             )
         );
         fundMe.fund{value: amount}();
-    }
-
-    function testGetEthPrice() public {
-        assertEq(fundMe.getEthPrice(), ethPrice);
     }
 
     function testWithdraw() public {

@@ -4,7 +4,7 @@ out = 'out'
 libs = ['lib']
 remappings = [
     'ds-test/=lib/ds-test/src/',
-    'chainlink/=lib/chainlink-brownie-contracts/contracts/src/'
+    'chainlink/=lib/chainlink-brownie-contracts/contracts/src/v0.8/'
     ]
 verbosity = 3
 
