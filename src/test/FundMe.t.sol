@@ -30,9 +30,9 @@ contract FundMeUnitTest is DSTest {
         fundMe = new FundMe(priceFeedAddr);
     }
 
-    function testGetMinimumFundingAmount() public {
+    function testGetMinimumAmount() public {
         assertEq(
-            fundMe.getMinimumFundingAmount(),
+            fundMe.getMinimumAmount(),
             ((MIN_AMOUNT_IN_USD * 1e18) / ethPrice)
         );
     }
@@ -44,7 +44,7 @@ contract FundMeUnitTest is DSTest {
     }
 
     function testCannotFund() public {
-        uint256 minAmount = fundMe.getMinimumFundingAmount();
+        uint256 minAmount = fundMe.getMinimumAmount();
         uint256 amount = minAmount - 1;
         cheats.expectRevert(
             abi.encodeWithSelector(
@@ -94,7 +94,7 @@ contract FundMeIntegrationTest is DSTest {
     }
 
     function testBasicIntegration() public {
-        uint256 amount = fundMe.getMinimumFundingAmount();
+        uint256 amount = fundMe.getMinimumAmount();
         fundMe.fund{value: amount}();
         uint256 prevBalance = address(this).balance;
         fundMe.withdraw();
