@@ -31,10 +31,10 @@ contract Lottery is VRFConsumerBase, Auth {
         uint256 _fee,
         bytes32 _keyHash,
         address _vrfCoordinatorAddr,
-        address _linkAddr,
+        address _linkTokenAddr,
         address _authorityAddr
     )
-        VRFConsumerBase(_vrfCoordinatorAddr, _linkAddr)
+        VRFConsumerBase(_vrfCoordinatorAddr, _linkTokenAddr)
         Auth(msg.sender, Authority(_authorityAddr))
     {
         priceFeed = AggregatorV3Interface(_priceFeedAddr);

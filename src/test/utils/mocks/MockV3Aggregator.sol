@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+// Copied from smartcontractkit/dapptools-starter-kit (https://github.com/smartcontractkit/dapptools-starter-kit). See `NOTICE.md`.
+
 pragma solidity ^0.8.0;
 
 /**

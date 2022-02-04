@@ -13,7 +13,6 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer {
     uint256 constant MIN_AMOUNT_IN_USD = 50e18;
 
     FundMe fundMe;
-    address ethUsdPriceFeedAddr;
 
     // You can customize me!
     uint256 ethPriceInUsd = 1000e18;
@@ -25,7 +24,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer {
     fallback() external payable {}
 
     function setUp() public {
-        ethUsdPriceFeedAddr = address(
+        address ethUsdPriceFeedAddr = address(
             new MockV3Aggregator(8, int256(ethPriceInUsd / 1e10))
         );
         fundMe = new FundMe(ethUsdPriceFeedAddr, authorityAddr);
