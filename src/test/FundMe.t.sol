@@ -2,13 +2,14 @@
 
 pragma solidity 0.8.10;
 
-import "src/FundMe.sol";
-import "./mocks/MockV3Aggregator.sol";
+import {FundMe} from "src/FundMe.sol";
+import {MockV3Aggregator} from "src/test/utils/mocks/MockV3Aggregator.sol";
 
-import "ds-test/test.sol";
-import "./interfaces/ICheatCodes.sol";
+import {DSTest} from "ds-test/test.sol";
+import {CheatCodes} from "src/test/utils/ICheatCodes.sol";
+import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
 
-contract FundMeUnitTest is DSTest {
+contract FundMeUnitTest is DSTest, AuthorityDeployer {
     uint256 constant MIN_AMOUNT_IN_USD = 50e18;
 
     FundMe fundMe;
@@ -27,7 +28,7 @@ contract FundMeUnitTest is DSTest {
         priceFeedAddr = address(
             new MockV3Aggregator(8, int256(ethPrice / 1e10))
         );
-        fundMe = new FundMe(priceFeedAddr);
+        fundMe = new FundMe(priceFeedAddr, authorityAddr);
     }
 
     function testGetMinimumAmount() public {
@@ -68,15 +69,13 @@ contract FundMeUnitTest is DSTest {
     }
 
     function testCannotWithdraw() public {
-        cheats.prank(address(1));
-        cheats.expectRevert(
-            abi.encodeWithSelector(FundMe.Unauthorized.selector)
-        );
+        cheats.prank(address(0xBAD));
+        cheats.expectRevert(bytes("UNAUTHORIZED"));
         fundMe.withdraw();
     }
 }
 
-contract FundMeIntegrationTest is DSTest {
+contract FundMeIntegrationTest is DSTest, AuthorityDeployer {
     // You can customize me!
     address constant PRICE_FEED_ADDR =
         0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
@@ -90,7 +89,7 @@ contract FundMeIntegrationTest is DSTest {
     fallback() external payable {}
 
     function setUp() public {
-        fundMe = new FundMe(PRICE_FEED_ADDR);
+        fundMe = new FundMe(PRICE_FEED_ADDR, authorityAddr);
     }
 
     function testBasicIntegration() public {
