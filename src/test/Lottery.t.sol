@@ -9,7 +9,7 @@ import {LinkToken} from "src/test/utils/mocks/LinkToken.sol";
 
 import {DSTest} from "ds-test/test.sol";
 import {Vm} from "lib/forge-std/src/Vm.sol";
-import {stdCheats} from "forge-std/stdlib.sol";
+import {stdCheats, stdStorage} from "forge-std/stdlib.sol";
 import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
 import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 
@@ -45,6 +45,23 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
         assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.OPEN);
     }
 
+    function testCannotStartLotteryUnauthorized() public {
+        vm.prank(address(0xBAD));
+        vm.expectRevert(bytes("UNAUTHORIZED"));
+        lottery.startLottery();
+    }
+
+    function testCannotStartLotteryTwice() public {
+        lottery.startLottery();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Lottery.FunctionalityLocked.selector,
+                Lottery.LOTTERY_STATE.OPEN
+            )
+        );
+        lottery.startLottery();
+    }
+
     function testGetEntryFee() public {
         assertEq(
             lottery.getEntryFee(),
@@ -55,4 +72,12 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
     function testGetEthPrice() public {
         assertEq(lottery.getEthPriceInUsd(), ethPriceInUsd);
     }
+
+    function testEnter() public {
+        lottery.startLottery();
+        lottery.enter{value: lottery.getEntryFee()}();
+        assertEq(lottery.players(0), address(this));
+    }
+
+    //function endLottery() public {
 }
