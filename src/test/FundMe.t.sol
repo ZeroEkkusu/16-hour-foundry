@@ -25,7 +25,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         address ethUsdPriceFeedAddr = address(
             new MockV3Aggregator(8, int256(ethPriceInUsd / 1e10))
         );
-        fundMe = new FundMe(ethUsdPriceFeedAddr, AUTHORITY_ADDR);
+        fundMe = new FundMe(ethUsdPriceFeedAddr, AUTHORITY_ADDRESS);
     }
 
     function testGetMinimumAmount() public {
@@ -74,13 +74,13 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
 
 contract FundMeIntegrationTest is DSTest, AuthorityDeployer, EthReceiver {
     /// @dev Get the address here: https://docs.chain.link/docs/reference-contracts/
-    address constant PRICE_FEED_ADDR =
+    address constant PRICE_FEED_ADDRESS =
         0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
 
     FundMe fundMe;
 
     function setUp() public {
-        fundMe = new FundMe(PRICE_FEED_ADDR, AUTHORITY_ADDR);
+        fundMe = new FundMe(PRICE_FEED_ADDRESS, AUTHORITY_ADDRESS);
     }
 
     function testBasicIntegration() public {

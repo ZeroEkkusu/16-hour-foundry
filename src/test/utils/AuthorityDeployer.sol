@@ -5,5 +5,5 @@ pragma solidity ^0.8.0;
 import {MockAuthority} from "solmate/test/utils/mocks/MockAuthority.sol";
 
 abstract contract AuthorityDeployer {
-    address AUTHORITY_ADDR = address(new MockAuthority(false));
+    address AUTHORITY_ADDRESS = address(new MockAuthority(false));
 }

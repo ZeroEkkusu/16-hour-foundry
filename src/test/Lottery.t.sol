@@ -13,7 +13,7 @@ import {stdCheats} from "forge-std/stdlib.sol";
 import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
 import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 
-contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
+contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     event WinnerSelected(address indexed winner, uint256 randomness);
     uint256 constant ENTRY_FEE_IN_USD = 50e18;
 
@@ -40,7 +40,7 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
             bytes32(0),
             address(vrfCoordinator),
             address(link),
-            AUTHORITY_ADDR
+            AUTHORITY_ADDRESS
         );
     }
 
