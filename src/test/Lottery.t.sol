@@ -21,6 +21,7 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
     LinkToken link;
     MockVRFCoordinator vrfCoordinator;
 
+    /// @dev You can customize the price of ETH in USD
     uint256 ethPriceInUsd;
 
     Vm vm = Vm(HEVM_ADDRESS);

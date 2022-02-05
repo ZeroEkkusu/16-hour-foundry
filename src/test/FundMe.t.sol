@@ -15,6 +15,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
 
     FundMe fundMe;
 
+    /// @dev You can customize the price of ETH in USD
     uint256 ethPriceInUsd;
 
     Vm vm = Vm(HEVM_ADDRESS);
@@ -72,7 +73,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
 }
 
 contract FundMeIntegrationTest is DSTest, AuthorityDeployer, EthReceiver {
-    // You can customize me!
+    /// @dev Get the address here: https://docs.chain.link/docs/vrf-contracts/
     address constant PRICE_FEED_ADDR =
         0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
 
