@@ -12,6 +12,7 @@ import {Vm} from "lib/forge-std/src/Vm.sol";
 import {stdCheats} from "forge-std/stdlib.sol";
 import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
 import {EthReceiver} from "src/test/utils/EthReceiver.sol";
+import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     event WinnerSelected(address indexed winner, uint256 randomness);
@@ -173,4 +174,23 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
         vm.prank(address(vrfCoordinator));
         lottery.rawFulfillRandomness(bytes32(0), 0);
     }
+}
+
+contract LotteryIntegrationTest is DSTest, AuthorityDeployer, AddressBook {
+    Lottery lottery;
+
+    function setUp() public {
+        lottery = new Lottery(
+            ETHUSD_PRICE_FEED_ADDRESS,
+            FEE,
+            KEY_HASH,
+            VRF_COORDINATOR_ADDRESS,
+            LINK_ADDRESS,
+            AUTHORITY_ADDRESS
+        );
+    }
+
+    Vm vm = Vm(HEVM_ADDRESS);
+
+    function testBasicIntegration() public {}
 }

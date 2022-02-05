@@ -9,6 +9,7 @@ import {DSTest} from "ds-test/test.sol";
 import {Vm} from "lib/forge-std/src/Vm.sol";
 import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
 import {EthReceiver} from "src/test/utils/EthReceiver.sol";
+import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     uint256 constant MIN_AMOUNT_IN_USD = 50e18;
@@ -72,15 +73,16 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     }
 }
 
-contract FundMeIntegrationTest is DSTest, AuthorityDeployer, EthReceiver {
-    /// @dev Get the address here: https://docs.chain.link/docs/reference-contracts/
-    address constant PRICE_FEED_ADDRESS =
-        0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
-
+contract FundMeIntegrationTest is
+    DSTest,
+    AuthorityDeployer,
+    EthReceiver,
+    AddressBook
+{
     FundMe fundMe;
 
     function setUp() public {
-        fundMe = new FundMe(PRICE_FEED_ADDRESS, AUTHORITY_ADDRESS);
+        fundMe = new FundMe(ETHUSD_PRICE_FEED_ADDRESS, AUTHORITY_ADDRESS);
     }
 
     function testBasicIntegration() public {
