@@ -44,7 +44,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         assertEq(address(fundMe).balance, 1 ether);
     }
 
-    function testCannotFund() public {
+    function testCannotFundAmountTooLow() public {
         uint256 minAmount = fundMe.getMinimumAmount();
         uint256 amount = minAmount - 1;
         vm.expectRevert(
@@ -64,7 +64,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         assertEq(address(this).balance, prevBalance + 1 ether);
     }
 
-    function testCannotWithdraw() public {
+    function testCannotWithdrawUnauthorized() public {
         vm.prank(address(0xBAD));
         vm.expectRevert(bytes("UNAUTHORIZED"));
         fundMe.withdraw();
