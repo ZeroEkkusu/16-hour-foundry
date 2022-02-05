@@ -15,22 +15,22 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
 
     FundMe fundMe;
 
-    // You can customize me!
-    uint256 ethPriceInUsd = 1000e18;
+    uint256 ethPriceInUsd;
 
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
+        ethPriceInUsd = 1000e18;
         address ethUsdPriceFeedAddr = address(
             new MockV3Aggregator(8, int256(ethPriceInUsd / 1e10))
         );
-        fundMe = new FundMe(ethUsdPriceFeedAddr, authorityAddr);
+        fundMe = new FundMe(ethUsdPriceFeedAddr, AUTHORITY_ADDR);
     }
 
     function testGetMinimumAmount() public {
         assertEq(
             fundMe.getMinimumAmount(),
-            ((MIN_AMOUNT_IN_USD * 1e18) / ethPriceInUsd)
+            (MIN_AMOUNT_IN_USD * 1e18) / ethPriceInUsd
         );
     }
 
@@ -79,7 +79,7 @@ contract FundMeIntegrationTest is DSTest, AuthorityDeployer, EthReceiver {
     FundMe fundMe;
 
     function setUp() public {
-        fundMe = new FundMe(PRICE_FEED_ADDR, authorityAddr);
+        fundMe = new FundMe(PRICE_FEED_ADDR, AUTHORITY_ADDR);
     }
 
     function testBasicIntegration() public {

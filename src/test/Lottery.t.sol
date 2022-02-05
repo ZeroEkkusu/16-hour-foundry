@@ -19,12 +19,12 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
     Lottery lottery;
     address vrfCoordinatorAddr;
 
-    // You can customize me!
-    uint256 ethPriceInUsd = 1000e18;
+    uint256 ethPriceInUsd;
 
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
+        ethPriceInUsd = 1000e18;
         address ethUsdPriceFeedAddr = address(
             new MockV3Aggregator(8, int256(ethPriceInUsd / 1e10))
         );
@@ -36,12 +36,23 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
             bytes32(0),
             vrfCoordinatorAddr,
             linkTokenAddr,
-            authorityAddr
+            AUTHORITY_ADDR
         );
     }
 
     function testStartLottery() public {
         lottery.startLottery();
         assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.OPEN);
+    }
+
+    function testGetEntryFee() public {
+        assertEq(
+            lottery.getEntryFee(),
+            (ENTRY_FEE_IN_USD * 1e18) / ethPriceInUsd
+        );
+    }
+
+    function testGetEthPrice() public {
+        assertEq(lottery.getEthPriceInUsd(), ethPriceInUsd);
     }
 }
