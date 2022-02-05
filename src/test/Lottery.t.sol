@@ -8,16 +8,12 @@ import {MockVRFCoordinator} from "src/test/utils/mocks/MockVRFCoordinator.sol";
 import {LinkToken} from "src/test/utils/mocks/LinkToken.sol";
 
 import {DSTest} from "ds-test/test.sol";
-import {CheatCodes} from "src/test/utils/ICheatCodes.sol";
+import {Vm} from "lib/forge-std/src/Vm.sol";
 import {stdCheats} from "forge-std/stdlib.sol";
 import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
+import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 
-contract LotteryUnitTest is DSTest, AuthorityDeployer, stdCheats {
-    enum LOTTERY_STATE {
-        CLOSED,
-        OPEN,
-        CALCULATING_WINNER
-    }
+contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
     uint256 constant ENTRY_FEE_IN_USD = 50e18;
 
     Lottery lottery;
@@ -26,11 +22,7 @@ contract LotteryUnitTest is DSTest, AuthorityDeployer, stdCheats {
     // You can customize me!
     uint256 ethPriceInUsd = 1000e18;
 
-    CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
-
-    receive() external payable {}
-
-    fallback() external payable {}
+    Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
         address ethUsdPriceFeedAddr = address(
@@ -50,6 +42,6 @@ contract LotteryUnitTest is DSTest, AuthorityDeployer, stdCheats {
 
     function testStartLottery() public {
         lottery.startLottery();
-        assertEq(uint256(lottery.lotteryState()), uint256(LOTTERY_STATE.OPEN));
+        assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.OPEN);
     }
 }

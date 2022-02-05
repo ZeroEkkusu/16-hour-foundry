@@ -6,10 +6,11 @@ import {FundMe} from "src/FundMe.sol";
 import {MockV3Aggregator} from "src/test/utils/mocks/MockV3Aggregator.sol";
 
 import {DSTest} from "ds-test/test.sol";
-import {CheatCodes} from "src/test/utils/ICheatCodes.sol";
+import {Vm} from "lib/forge-std/src/Vm.sol";
 import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
+import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 
-contract FundMeUnitTest is DSTest, AuthorityDeployer {
+contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     uint256 constant MIN_AMOUNT_IN_USD = 50e18;
 
     FundMe fundMe;
@@ -17,11 +18,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer {
     // You can customize me!
     uint256 ethPriceInUsd = 1000e18;
 
-    CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
-
-    receive() external payable {}
-
-    fallback() external payable {}
+    Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
         address ethUsdPriceFeedAddr = address(
@@ -50,7 +47,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer {
     function testCannotFund() public {
         uint256 minAmount = fundMe.getMinimumAmount();
         uint256 amount = minAmount - 1;
-        cheats.expectRevert(
+        vm.expectRevert(
             abi.encodeWithSelector(
                 FundMe.AmountTooLow.selector,
                 amount,
@@ -68,24 +65,18 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer {
     }
 
     function testCannotWithdraw() public {
-        cheats.prank(address(0xBAD));
-        cheats.expectRevert(bytes("UNAUTHORIZED"));
+        vm.prank(address(0xBAD));
+        vm.expectRevert(bytes("UNAUTHORIZED"));
         fundMe.withdraw();
     }
 }
 
-contract FundMeIntegrationTest is DSTest, AuthorityDeployer {
+contract FundMeIntegrationTest is DSTest, AuthorityDeployer, EthReceiver {
     // You can customize me!
     address constant PRICE_FEED_ADDR =
         0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
 
     FundMe fundMe;
-
-    CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
-
-    receive() external payable {}
-
-    fallback() external payable {}
 
     function setUp() public {
         fundMe = new FundMe(PRICE_FEED_ADDR, authorityAddr);
