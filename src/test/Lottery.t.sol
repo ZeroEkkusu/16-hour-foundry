@@ -9,15 +9,17 @@ import {LinkToken} from "src/test/utils/mocks/LinkToken.sol";
 
 import {DSTest} from "ds-test/test.sol";
 import {Vm} from "lib/forge-std/src/Vm.sol";
-import {stdCheats, stdStorage} from "forge-std/stdlib.sol";
+import {stdCheats} from "forge-std/stdlib.sol";
 import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
 import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 
 contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
+    event WinnerSelected(address indexed winner, uint256 randomness);
     uint256 constant ENTRY_FEE_IN_USD = 50e18;
 
     Lottery lottery;
-    address vrfCoordinatorAddr;
+    LinkToken link;
+    MockVRFCoordinator vrfCoordinator;
 
     uint256 ethPriceInUsd;
 
@@ -25,17 +27,18 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
 
     function setUp() public {
         ethPriceInUsd = 1000e18;
+
         address ethUsdPriceFeedAddr = address(
             new MockV3Aggregator(8, int256(ethPriceInUsd / 1e10))
         );
-        address linkTokenAddr = address(new LinkToken());
-        vrfCoordinatorAddr = address(new MockVRFCoordinator(linkTokenAddr));
+        link = new LinkToken();
+        vrfCoordinator = new MockVRFCoordinator(address(link));
         lottery = new Lottery(
             ethUsdPriceFeedAddr,
             1e18,
             bytes32(0),
-            vrfCoordinatorAddr,
-            linkTokenAddr,
+            address(vrfCoordinator),
+            address(link),
             AUTHORITY_ADDR
         );
     }
@@ -53,6 +56,7 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
 
     function testCannotStartLotteryTwice() public {
         lottery.startLottery();
+
         vm.expectRevert(
             abi.encodeWithSelector(
                 Lottery.FunctionalityLocked.selector,
@@ -69,15 +73,103 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer, EthReceiver {
         );
     }
 
-    function testGetEthPrice() public {
+    function testGetEthPriceInUsd() public {
         assertEq(lottery.getEthPriceInUsd(), ethPriceInUsd);
     }
 
     function testEnter() public {
         lottery.startLottery();
+
         lottery.enter{value: lottery.getEntryFee()}();
         assertEq(lottery.players(0), address(this));
     }
 
-    //function endLottery() public {
+    function testCannotEnterNotOpen() public {
+        uint256 entryFee = lottery.getEntryFee();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Lottery.FunctionalityLocked.selector,
+                Lottery.LOTTERY_STATE.CLOSED
+            )
+        );
+        lottery.enter{value: entryFee}();
+    }
+
+    function testCannotEnterAmountTooLow() public {
+        lottery.startLottery();
+
+        uint256 entryFee = lottery.getEntryFee();
+        uint256 amount = entryFee - 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Lottery.AmountTooLow.selector,
+                amount,
+                entryFee
+            )
+        );
+        lottery.enter{value: amount}();
+    }
+
+    function testEndLottery() public {
+        lottery.startLottery();
+
+        link.transfer(address(lottery), 1e18);
+        lottery.endLottery();
+        assertTrue(
+            lottery.lotteryState() == Lottery.LOTTERY_STATE.CALCULATING_WINNER
+        );
+    }
+
+    function testCannotEndLotteryUnauthorized() public {
+        lottery.startLottery();
+
+        vm.expectRevert(bytes("UNAUTHORIZED"));
+        vm.prank(address(0xBAD));
+        lottery.endLottery();
+    }
+
+    function testSelectWinner() public {
+        lottery.startLottery();
+        uint256 entryFee = lottery.getEntryFee();
+        hoax(address(1), entryFee);
+        lottery.enter{value: entryFee}();
+        hoax(address(2), entryFee);
+        lottery.enter{value: entryFee}();
+        link.transfer(address(lottery), 1e18);
+        bytes32 requestId = lottery.endLottery();
+
+        uint256 randomness = 1337;
+        address expectedWinner = lottery.players(randomness % 2);
+        vm.expectEmit(true, false, false, true);
+        emit WinnerSelected(expectedWinner, randomness);
+        vrfCoordinator.callBackWithRandomness(
+            requestId,
+            randomness,
+            address(lottery)
+        );
+        assertEq(expectedWinner.balance, entryFee * 2);
+    }
+
+    function testCannotSelectWinnerNotSelecting() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Lottery.FunctionalityLocked.selector,
+                lottery.lotteryState()
+            )
+        );
+        vm.prank(address(vrfCoordinator));
+        lottery.rawFulfillRandomness(bytes32(0), 1337);
+    }
+
+    function testCannotSelectWinnerNoRandomness() public {
+        lottery.startLottery();
+        link.transfer(address(lottery), 1e18);
+        lottery.endLottery();
+
+        vm.expectRevert(
+            abi.encodeWithSelector(Lottery.RandomnessNotFound.selector)
+        );
+        vm.prank(address(vrfCoordinator));
+        lottery.rawFulfillRandomness(bytes32(0), 0);
+    }
 }

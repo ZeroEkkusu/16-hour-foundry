@@ -15,7 +15,7 @@ interface ERC677Receiver {
 }
 
 contract LinkToken is ERC20 {
-    uint256 initialSupply = 1000000000000000000000000;
+    uint256 initialSupply = 1000000e18;
 
     constructor() ERC20("LinkToken", "LINK", 18) {
         _mint(msg.sender, initialSupply);
