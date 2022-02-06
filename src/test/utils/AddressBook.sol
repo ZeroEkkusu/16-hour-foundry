@@ -12,6 +12,7 @@ abstract contract AddressBook {
     address immutable VRF_COORDINATOR_ADDRESS;
     bytes32 immutable KEY_HASH;
     uint256 immutable FEE;
+    address immutable LINK_FAUCET_ADDRESS;
 
     constructor() {
         address linkAddr;
@@ -19,6 +20,7 @@ abstract contract AddressBook {
         address vrfCoordinatorAddr;
         bytes32 keyHash;
         uint256 fee;
+        address linkFaucetAddr;
 
         uint256 id;
         assembly {
@@ -36,6 +38,9 @@ abstract contract AddressBook {
             );
             keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
             fee = 2e18;
+            linkFaucetAddr = address(
+                0x98C63b7B319dFBDF3d811530F2ab9DfE4983Af9D
+            );
         }
 
         // ...
@@ -45,5 +50,6 @@ abstract contract AddressBook {
         VRF_COORDINATOR_ADDRESS = vrfCoordinatorAddr;
         KEY_HASH = keyHash;
         FEE = fee;
+        LINK_FAUCET_ADDRESS = linkFaucetAddr;
     }
 }

@@ -133,15 +133,17 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     function testSelectWinner() public {
         lottery.startLottery();
         uint256 entryFee = lottery.getEntryFee();
-        hoax(address(1), entryFee);
-        lottery.enter{value: entryFee}();
-        hoax(address(2), entryFee);
-        lottery.enter{value: entryFee}();
+        uint256 numOfPlayers = 5;
+        for (uint160 i = 0; i < numOfPlayers; i++) {
+            hoax(address(uint160(i)), entryFee);
+            lottery.enter{value: entryFee}();
+        }
         link.transfer(address(lottery), 1e18);
         bytes32 requestId = lottery.endLottery();
 
         uint256 randomness = 1337;
-        address expectedWinner = lottery.players(randomness % 2);
+        address expectedWinner = lottery.players(randomness % numOfPlayers);
+        uint256 prize = address(lottery).balance;
         vm.expectEmit(true, false, false, true);
         emit WinnerSelected(expectedWinner, randomness);
         vrfCoordinator.callBackWithRandomness(
@@ -149,14 +151,14 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
             randomness,
             address(lottery)
         );
-        assertEq(expectedWinner.balance, entryFee * 2);
+        assertEq(expectedWinner.balance, prize);
     }
 
     function testCannotSelectWinnerNotSelecting() public {
         vm.expectRevert(
             abi.encodeWithSelector(
                 Lottery.FunctionalityLocked.selector,
-                lottery.lotteryState()
+                Lottery.LOTTERY_STATE.CLOSED
             )
         );
         vm.prank(address(vrfCoordinator));
@@ -176,7 +178,14 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     }
 }
 
-contract LotteryIntegrationTest is DSTest, AuthorityDeployer, AddressBook {
+contract LotteryIntegrationTest is
+    DSTest,
+    stdCheats,
+    AuthorityDeployer,
+    AddressBook
+{
+    event WinnerSelected(address indexed winner, uint256 randomness);
+
     Lottery lottery;
 
     function setUp() public {
@@ -192,5 +201,24 @@ contract LotteryIntegrationTest is DSTest, AuthorityDeployer, AddressBook {
 
     Vm vm = Vm(HEVM_ADDRESS);
 
-    function testBasicIntegration() public {}
+    function testBasicIntegration() public {
+        lottery.startLottery();
+        uint256 entryFee = lottery.getEntryFee();
+        uint256 numOfPlayers = 5;
+        for (uint160 i = 0; i < numOfPlayers; i++) {
+            hoax(address(uint160(i)), entryFee);
+            lottery.enter{value: entryFee}();
+        }
+        vm.prank(LINK_FAUCET_ADDRESS);
+        LinkToken(LINK_ADDRESS).transfer(address(lottery), FEE);
+        bytes32 requestId = lottery.endLottery();
+        uint256 randomness = 1337;
+        address expectedWinner = lottery.players(randomness % numOfPlayers);
+        uint256 prize = address(lottery).balance;
+        vm.expectEmit(true, false, false, true);
+        emit WinnerSelected(expectedWinner, randomness);
+        vm.prank(VRF_COORDINATOR_ADDRESS);
+        lottery.rawFulfillRandomness(requestId, randomness);
+        assertEq(expectedWinner.balance, prize);
+    }
 }
