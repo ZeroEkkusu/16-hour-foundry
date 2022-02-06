@@ -23,6 +23,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
 
     function setUp() public {
         ethPriceInUsd = 1000e18;
+
         address ethUsdPriceFeedAddr = address(
             new MockV3Aggregator(8, int256(ethPriceInUsd / 1e10))
         );
