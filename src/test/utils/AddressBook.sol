@@ -2,8 +2,11 @@
 
 pragma solidity ^0.8.0;
 
+/// @notice A convenience contract for fetching the right addresses of commonly used contracts.
+/// @dev Just inherit `AddressBook` in your testing contract and access the addresses below.
+/// @dev If you need more chains, add them after the ETHEREUM MAINNET setup.
 abstract contract AddressBook {
-    // CHAINLINK
+    // CHAINLINK CONTRACTS
     address immutable LINK_ADDRESS;
     address immutable ETHUSD_PRICE_FEED_ADDRESS;
     address immutable VRF_COORDINATOR_ADDRESS;
