@@ -74,10 +74,6 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
         );
     }
 
-    function testGetEthPriceInUsd() public {
-        assertEq(lottery.getEthPriceInUsd(), ethPriceInUsd);
-    }
-
     function testEnter() public {
         lottery.startLottery();
 

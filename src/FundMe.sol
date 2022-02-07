@@ -16,15 +16,15 @@ contract FundMe is Auth {
 
     AggregatorV3Interface public ethUsdPriceFeed;
 
-    constructor(address _ethUsdPriceFeed, address _authorityAddr)
+    constructor(address _ethUsdPriceFeedAddr, address _authorityAddr)
         Auth(msg.sender, Authority(_authorityAddr))
     {
-        ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeed);
+        ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeedAddr);
     }
 
     function getMinimumAmount() public view returns (uint256) {
-        (, int256 answer, , , ) = ethUsdPriceFeed.latestRoundData();
-        return ((MIN_AMOUNT_IN_USD * 1e8) / uint256(answer));
+        (, int256 ethPriceInUsd, , , ) = ethUsdPriceFeed.latestRoundData();
+        return (MIN_AMOUNT_IN_USD * 1e8) / uint256(ethPriceInUsd);
     }
 
     function fund() public payable {

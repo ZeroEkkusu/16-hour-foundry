@@ -22,12 +22,12 @@ contract Lottery is VRFConsumerBase, Auth {
     LOTTERY_STATE public lotteryState;
     address payable[] public players;
 
-    AggregatorV3Interface public priceFeed;
+    AggregatorV3Interface public ethUsdPriceFeed;
     bytes32 public keyHash;
     uint256 public fee;
 
     constructor(
-        address _priceFeedAddr,
+        address _ethUsdPriceFeedAddr,
         uint256 _fee,
         bytes32 _keyHash,
         address _vrfCoordinatorAddr,
@@ -37,7 +37,7 @@ contract Lottery is VRFConsumerBase, Auth {
         VRFConsumerBase(_vrfCoordinatorAddr, _linkTokenAddr)
         Auth(msg.sender, Authority(_authorityAddr))
     {
-        priceFeed = AggregatorV3Interface(_priceFeedAddr);
+        ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeedAddr);
         fee = _fee;
         keyHash = _keyHash;
     }
@@ -50,13 +50,8 @@ contract Lottery is VRFConsumerBase, Auth {
     }
 
     function getEntryFee() public view returns (uint256) {
-        uint256 ethPriceInUsd = getEthPriceInUsd();
-        return (ENTRY_FEE_IN_USD * 1e18) / ethPriceInUsd;
-    }
-
-    function getEthPriceInUsd() public view returns (uint256) {
-        (, int256 answer, , , ) = priceFeed.latestRoundData();
-        return uint256(answer * 1e10);
+        (, int256 ethPriceInUsd, , , ) = ethUsdPriceFeed.latestRoundData();
+        return (ENTRY_FEE_IN_USD * 1e8) / uint256(ethPriceInUsd);
     }
 
     function enter() public payable {
