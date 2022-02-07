@@ -37,10 +37,6 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         );
     }
 
-    function testGetEthPriceInUsd() public {
-        assertEq(fundMe.getEthPriceInUsd(), ethPriceInUsd);
-    }
-
     function testFund() public {
         fundMe.fund{value: 1 ether}();
         assertEq(address(fundMe).balance, 1 ether);

@@ -8,6 +8,7 @@ import {Auth, Authority} from "solmate/auth/Auth.sol";
 
 contract FundMe is Auth {
     error AmountTooLow(uint256 amount, uint256 minAmount);
+    event Withdrawal(uint256 amount);
     uint256 constant MIN_AMOUNT_IN_USD = 50e18;
 
     mapping(address => uint256) public funderToAmount;
@@ -22,13 +23,8 @@ contract FundMe is Auth {
     }
 
     function getMinimumAmount() public view returns (uint256) {
-        uint256 ethPriceInUsd = getEthPriceInUsd();
-        return ((MIN_AMOUNT_IN_USD * 1e18) / ethPriceInUsd);
-    }
-
-    function getEthPriceInUsd() public view returns (uint256) {
         (, int256 answer, , , ) = ethUsdPriceFeed.latestRoundData();
-        return uint256(answer * 1e10);
+        return ((MIN_AMOUNT_IN_USD * 1e8) / uint256(answer));
     }
 
     function fund() public payable {
@@ -39,7 +35,9 @@ contract FundMe is Auth {
     }
 
     function withdraw() public requiresAuth {
-        SafeTransferLib.safeTransferETH(msg.sender, address(this).balance);
+        uint256 amount = address(this).balance;
+        SafeTransferLib.safeTransferETH(msg.sender, amount);
+        emit Withdrawal(amount);
         for (uint256 i = 0; i < funders.length; i++) {
             funderToAmount[funders[i]] = 0;
         }
