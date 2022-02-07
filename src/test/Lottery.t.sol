@@ -15,7 +15,6 @@ import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
-    event WinnerSelected(address indexed winner, uint256 randomness);
     uint256 constant ENTRY_FEE_IN_USD = 50e18;
 
     Lottery lottery;
@@ -144,8 +143,6 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
         uint256 randomness = 1337;
         address expectedWinner = lottery.players(randomness % numOfPlayers);
         uint256 prize = address(lottery).balance;
-        vm.expectEmit(true, false, false, true);
-        emit WinnerSelected(expectedWinner, randomness);
         vrfCoordinator.callBackWithRandomness(
             requestId,
             randomness,
@@ -215,8 +212,6 @@ contract LotteryIntegrationTest is
         uint256 randomness = 1337;
         address expectedWinner = lottery.players(randomness % numOfPlayers);
         uint256 prize = address(lottery).balance;
-        vm.expectEmit(true, false, false, true);
-        emit WinnerSelected(expectedWinner, randomness);
         vm.prank(VRF_COORDINATOR_ADDRESS);
         lottery.rawFulfillRandomness(requestId, randomness);
         assertEq(expectedWinner.balance, prize);
