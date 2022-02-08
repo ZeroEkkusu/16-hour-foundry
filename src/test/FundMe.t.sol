@@ -30,15 +30,15 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         fundMe = new FundMe(ethUsdPriceFeedAddr, AUTHORITY_ADDRESS);
     }
 
-    function testGetMinimumAmount() public {
+    function testgetMinimumAmount__8X() public {
         assertEq(
-            fundMe.getMinimumAmount(),
+            fundMe.getMinimumAmount__8X(),
             (MIN_AMOUNT_IN_USD * 1e18) / ethPriceInUsd
         );
     }
 
     function testFund() public {
-        uint256 amount = fundMe.getMinimumAmount();
+        uint256 amount = fundMe.getMinimumAmount__8X();
 
         fundMe.fund{value: amount}();
         assertEq(fundMe.funders(0), address(this));
@@ -46,7 +46,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     }
 
     function testCannotFundAmountTooLow() public {
-        uint256 minAmount = fundMe.getMinimumAmount();
+        uint256 minAmount = fundMe.getMinimumAmount__8X();
         uint256 amount = minAmount - 1;
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -59,7 +59,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     }
 
     function testWithdraw() public {
-        uint256 amount = fundMe.getMinimumAmount();
+        uint256 amount = fundMe.getMinimumAmount__8X();
         fundMe.fund{value: amount}();
 
         uint256 prevBalance = address(this).balance;
@@ -87,7 +87,7 @@ contract FundMeIntegrationTest is
     }
 
     function testBasicIntegration() public {
-        uint256 amount = fundMe.getMinimumAmount();
+        uint256 amount = fundMe.getMinimumAmount__8X();
         uint256 numOfFunders = 5;
         for (uint256 i = 1; i <= numOfFunders; ++i) {
             fundMe.fund{value: amount}();
