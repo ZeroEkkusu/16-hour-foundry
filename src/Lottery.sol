@@ -7,17 +7,16 @@ import {VRFConsumerBase} from "chainlink/VRFConsumerBase.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Auth, Authority} from "solmate/auth/Auth.sol";
 
+/// @notice Enter the lottery with 50 USD in ETH for a chance to win the prize of other players' fees
 contract Lottery is VRFConsumerBase, Auth {
     error FunctionalityLocked(LOTTERY_STATE lotteryState);
     error AmountTooLow(uint256 amount, uint256 entryFee);
-    error RandomnessNotFound();
     event WinnerSelected(address indexed winner, uint256 _randomness);
     enum LOTTERY_STATE {
         CLOSED,
         OPEN,
         CALCULATING_WINNER
     }
-    uint256 constant ENTRY_FEE_IN_USD = 50e18;
 
     LOTTERY_STATE public lotteryState;
     address payable[] public players;
@@ -49,23 +48,23 @@ contract Lottery is VRFConsumerBase, Auth {
         lotteryState = LOTTERY_STATE.OPEN;
     }
 
-    function getEntryFee() public view returns (uint256) {
+    function getEntryFee_3_4iR() public view returns (uint256) {
         (, int256 ethPriceInUsd, , , ) = ethUsdPriceFeed.latestRoundData();
-        return (ENTRY_FEE_IN_USD * 1e8) / uint256(ethPriceInUsd);
+        return 50e26 / uint256(ethPriceInUsd);
     }
 
-    function enter() public payable {
+    function enter_Wrc() public payable {
         if (lotteryState != LOTTERY_STATE.OPEN)
             revert FunctionalityLocked(lotteryState);
-        uint256 entryFee = getEntryFee();
-        if (msg.value < entryFee) revert AmountTooLow(msg.value, entryFee);
+        if (msg.value < getEntryFee_3_4iR())
+            revert AmountTooLow(msg.value, getEntryFee_3_4iR());
 
         players.push(payable(msg.sender));
     }
 
-    function endLottery() public requiresAuth returns (bytes32) {
+    function endLottery() public requiresAuth {
         lotteryState = LOTTERY_STATE.CALCULATING_WINNER;
-        return requestRandomness(keyHash, fee);
+        requestRandomness(keyHash, fee);
     }
 
     function fulfillRandomness(bytes32 _requestId, uint256 _randomness)
@@ -74,7 +73,7 @@ contract Lottery is VRFConsumerBase, Auth {
     {
         if (lotteryState != LOTTERY_STATE.CALCULATING_WINNER)
             revert FunctionalityLocked(lotteryState);
-        if (_randomness <= 0) revert RandomnessNotFound();
+        require(_randomness > 0);
 
         address payable winner = players[_randomness % players.length];
 

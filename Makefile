@@ -19,3 +19,6 @@ integration-test-fundme :; forge test --match-contract FundMeIntegrationTest --f
 
 unit-test-lottery :; forge test --match-contract LotteryUnitTest
 integration-test-lottery :; forge test --match-contract LotteryIntegrationTest --fork-url $(ETH_RPC_URL)
+
+# check gas usage quickly
+gas :; forge test --match-test $(t) --force
