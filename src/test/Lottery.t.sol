@@ -198,18 +198,19 @@ contract LotteryIntegrationTest is
         lottery.startLottery();
         uint256 entryFee = lottery.getEntryFee();
         uint256 numOfPlayers = 5;
-        for (uint160 i = 0; i < numOfPlayers; i++) {
+        for (uint160 i = 1; i <= numOfPlayers; ++i) {
             hoax(address(uint160(i)), entryFee);
             lottery.enter{value: entryFee}();
         }
-        vm.prank(LINK_FAUCET_ADDRESS);
+        vm.prank(MY_LINK_FAUCET_ADDRESS);
         LinkToken(LINK_ADDRESS).transfer(address(lottery), FEE);
         bytes32 requestId = lottery.endLottery();
         uint256 randomness = 1337;
         address expectedWinner = lottery.players(randomness % numOfPlayers);
+        uint256 prevBalance = address(expectedWinner).balance;
         uint256 prize = address(lottery).balance;
         vm.prank(VRF_COORDINATOR_ADDRESS);
         lottery.rawFulfillRandomness(requestId, randomness);
-        assertEq(expectedWinner.balance, prize);
+        assertEq(expectedWinner.balance, prevBalance + prize);
     }
 }

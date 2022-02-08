@@ -38,7 +38,7 @@ contract FundMe is Auth {
         uint256 amount = address(this).balance;
         SafeTransferLib.safeTransferETH(msg.sender, amount);
         emit Withdrawal(amount);
-        for (uint256 i = 0; i < funders.length; i++) {
+        for (uint256 i = 0; i < funders.length; ++i) {
             funderToAmount[funders[i]] = 0;
         }
         funders = new address[](0);

@@ -38,8 +38,11 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     }
 
     function testFund() public {
-        fundMe.fund{value: 1 ether}();
-        assertEq(address(fundMe).balance, 1 ether);
+        uint256 amount = fundMe.getMinimumAmount();
+
+        fundMe.fund{value: amount}();
+        assertEq(fundMe.funders(0), address(this));
+        assertEq(address(fundMe).balance, amount);
     }
 
     function testCannotFundAmountTooLow() public {
@@ -56,10 +59,12 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     }
 
     function testWithdraw() public {
-        fundMe.fund{value: 1 ether}();
+        uint256 amount = fundMe.getMinimumAmount();
+        fundMe.fund{value: amount}();
+
         uint256 prevBalance = address(this).balance;
         fundMe.withdraw();
-        assertEq(address(this).balance, prevBalance + 1 ether);
+        assertEq(address(this).balance, prevBalance + amount);
     }
 
     function testCannotWithdrawUnauthorized() public {
@@ -83,9 +88,13 @@ contract FundMeIntegrationTest is
 
     function testBasicIntegration() public {
         uint256 amount = fundMe.getMinimumAmount();
-        fundMe.fund{value: amount}();
+        uint256 numOfFunders = 5;
+        for (uint256 i = 1; i <= numOfFunders; ++i) {
+            fundMe.fund{value: amount}();
+        }
         uint256 prevBalance = address(this).balance;
+        uint256 funds = address(fundMe).balance;
         fundMe.withdraw();
-        assertEq(address(this).balance, prevBalance + amount);
+        assertEq(address(this).balance, prevBalance + funds);
     }
 }
