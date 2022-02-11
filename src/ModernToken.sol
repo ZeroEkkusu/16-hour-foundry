@@ -8,14 +8,14 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 contract ModernToken is ERC20 {
     event Hint(string hint);
 
-    address private icoAddr;
+    address public icoAddr;
 
     constructor(
         string memory name,
         string memory symbol,
         uint8 decimals
     ) ERC20(name, symbol, decimals) {
-        icoAddr = address(new ICO(address(this)));
+        icoAddr = address(new Ico(address(this), payable(msg.sender)));
     }
 
     function hint() public {
@@ -28,17 +28,17 @@ contract ModernToken is ERC20 {
     }
 }
 
-contract ICO {
+contract Ico {
     error CannotBuyZeroTokens();
 
-    ModernToken private token;
-    uint256 private icoStartTime;
-    address payable private owner;
+    ModernToken public token;
+    uint256 public icoStartTime;
+    address payable public owner;
 
-    constructor(address tokenAddr) {
+    constructor(address tokenAddr, address payable _owner) {
         token = ModernToken(tokenAddr);
         icoStartTime = block.timestamp;
-        owner = payable(tx.origin);
+        owner = _owner;
     }
 
     function buy() public payable {
@@ -46,7 +46,7 @@ contract ICO {
         token.icoMint(payable(msg.sender), msg.value);
     }
 
-    function endICO() public {
+    function endIco() public {
         require(block.timestamp >= icoStartTime + 1 days);
         selfdestruct(owner);
     }

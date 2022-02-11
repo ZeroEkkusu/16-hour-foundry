@@ -1,24 +1,44 @@
-# include .env file and export its env vars
-# (-include to ignore error if it does not exist)
 -include .env
 
+# Test all
 test:
-	make test-fundme
-	make test-lottery
+	make -s test-fundme
+	make -s test-lottery
+	make -s test-moderntoken
 
+# Test FundMe
 test-fundme:
-	make unit-test-fundme
-	make integration-test-fundme
+	make -s unit-test-fundme
+	make -s integration-test-fundme
 
+# Test Lottery
 test-lottery:
-	make unit-test-lottery
-	make integration-test-lottery
+	make -s unit-test-lottery
+	make -s integration-test-lottery
 
-unit-test-fundme :; forge test --match-contract FundMeUnitTest
-integration-test-fundme :; forge test --match-contract FundMeIntegrationTest --fork-url $(ETH_RPC_URL)
+# Test ModernToken
+test-moderntoken:
+	make -s unit-test-moderntoken
+	make -s integration-test-moderntoken
 
-unit-test-lottery :; forge test --match-contract LotteryUnitTest
-integration-test-lottery :; forge test --match-contract LotteryIntegrationTest --fork-url $(ETH_RPC_URL)
+# Run unit or integration tests for FundMe
+unit-test-fundme :; make -s all-unit-tests c=FundMe
+integration-test-fundme :; make -s all-integration-tests c=FundMe
 
-# check gas usage quickly
+# Run unit or integration tests for Lottery
+unit-test-lottery :; make -s all-unit-tests c=Lottery
+integration-test-lottery :; make -s all-integration-tests c=Lottery
+
+# Run unit or integration tests for ModernToken
+unit-test-moderntoken :; make -s all-unit-tests c=ModernToken
+integration-test-moderntoken :; make -s all-integration-tests c=ModernToken
+
+# Check gas usage quickly
 gas :; forge test --match-test $(t) --force
+
+####################
+# NOT FOR ENDUSERS #
+####################
+
+all-unit-tests :; forge test --match-contract $(c)UnitTest
+all-integration-tests :; forge test --match-contract $(c)IntegrationTest --fork-url $(ETH_RPC_URL)
