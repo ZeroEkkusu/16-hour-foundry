@@ -19,7 +19,7 @@ contract ModernToken is ERC20 {
     }
 
     function hint() public {
-        emit Hint("You can make your token do something amazing!");
+        emit Hint("You can make the token do something amazing!");
     }
 
     function icoMint(address payable to, uint256 amount) public {
@@ -30,9 +30,12 @@ contract ModernToken is ERC20 {
 
 contract Ico {
     error CannotBuyZeroTokens();
+    event IcoOver();
 
     ModernToken public token;
     uint256 public icoStartTime;
+    bool public icoOver;
+
     address payable public owner;
 
     constructor(address tokenAddr, address payable _owner) {
@@ -42,12 +45,16 @@ contract Ico {
     }
 
     function buy() public payable {
+        require(!icoOver);
         if (msg.value == 0) revert CannotBuyZeroTokens();
         token.icoMint(payable(msg.sender), msg.value);
     }
 
     function endIco() public {
+        require(!icoOver);
         require(block.timestamp >= icoStartTime + 1 days);
+        icoOver = true;
+        emit IcoOver();
         selfdestruct(owner);
     }
 }
