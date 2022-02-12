@@ -22,10 +22,7 @@ abstract contract AddressBook {
         uint256 fee;
         address myLinkFaucetAddr;
 
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
+        uint256 id = block.chainid;
 
         // ETHEREUM MAINNET
         if (id == 1) {

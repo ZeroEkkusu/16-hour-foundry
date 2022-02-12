@@ -2,22 +2,22 @@
 
 pragma solidity ^0.8.4;
 
-import {ModernToken, Ico} from "src/ModernToken.sol";
+import {TokenWithIco, Ico} from "src/TokenWithIco.sol";
 
 import {DSTest} from "ds-test/test.sol";
-import {Vm} from "lib/forge-std/src/Vm.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {stdCheats} from "forge-std/stdlib.sol";
 
-contract ModernTokenUnitTest is DSTest, stdCheats {
+contract TokenWithIcoUnitTest is DSTest, stdCheats {
     event IcoOver();
 
-    ModernToken token;
+    TokenWithIco token;
     Ico ico;
 
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
-        token = new ModernToken("Token", "TKN", 18);
+        token = new TokenWithIco("Token", "TKN", 18);
         ico = Ico(token.icoAddr());
     }
 
@@ -61,14 +61,21 @@ contract ModernTokenUnitTest is DSTest, stdCheats {
     function testFailEndIcoNotOver() public {
         ico.endIco();
     }
+
+    function testFailEndIcoTwice() public {
+        skip(1 days);
+        ico.endIco();
+
+        ico.endIco();
+    }
 }
 
-contract ModernTokenIntegrationTest is DSTest, stdCheats {
-    ModernToken token;
+contract TokenWithIcoIntegrationTest is DSTest, stdCheats {
+    TokenWithIco token;
     Ico ico;
 
     function setUp() public {
-        token = new ModernToken("Token", "TKN", 18);
+        token = new TokenWithIco("Token", "TKN", 18);
         ico = Ico(token.icoAddr());
     }
 

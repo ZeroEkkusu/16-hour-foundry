@@ -8,34 +8,33 @@ import {MockVRFCoordinator} from "src/test/utils/mocks/MockVRFCoordinator.sol";
 import {LinkToken} from "src/test/utils/mocks/LinkToken.sol";
 
 import {DSTest} from "ds-test/test.sol";
-import {Vm} from "lib/forge-std/src/Vm.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {stdCheats} from "forge-std/stdlib.sol";
 import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
 import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
+    event WinnerSelected(address indexed winner, uint256 prize);
     uint256 constant ENTRY_FEE_IN_USD = 50e18;
 
     Lottery lottery;
     LinkToken link;
     MockVRFCoordinator vrfCoordinator;
 
-    /// @dev Customize the price of ETH in USD
     uint256 ethPriceInUsd;
-    /// @dev Customize the request ID when requesting/receiving randomness
-    bytes32 requestId;
-    /// @dev Customize the randomness
+
     uint256 randomness;
-    /// @dev Customize the fee paid in LINK for randomness
     uint256 fee;
 
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
+        // You can customize the price of ETH in USD
         ethPriceInUsd = 1000e18;
-        requestId = bytes32(0);
+        // You can customize the randomness
         randomness = 1337;
+        // You can customize the fee paid in LINK for randomness
         fee = 1e18;
 
         address ethUsdPriceFeedAddr = address(
@@ -46,7 +45,7 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
         lottery = new Lottery(
             ethUsdPriceFeedAddr,
             fee,
-            requestId,
+            bytes32(0),
             address(vrfCoordinator),
             address(link),
             AUTHORITY_ADDRESS
@@ -119,7 +118,7 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
 
     function testEndLottery() public {
         lottery.startLottery();
-        link.transfer(address(lottery), 1e18);
+        link.transfer(address(lottery), fee);
 
         lottery.endLottery();
         assertTrue(
@@ -138,23 +137,27 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     function testSelectWinner() public {
         lottery.startLottery();
         uint256 entryFee = lottery.getEntryFee_3_4iR();
+        // You can customize the number of players
         uint256 numOfPlayers = 5;
         for (uint160 i = 0; i < numOfPlayers; ++i) {
-            hoax(address(uint160(i)), entryFee);
+            hoax(address(i), entryFee);
             lottery.enter_Wrc{value: entryFee}();
         }
-        link.transfer(address(lottery), 1e18);
+        link.transfer(address(lottery), fee);
         lottery.endLottery();
         address expectedWinner = lottery.players(randomness % numOfPlayers);
-        uint256 prevBalance = expectedWinner.balance;
         uint256 prize = address(lottery).balance;
+        uint256 prevBalance = expectedWinner.balance;
 
+        //vm.expectEmit(true, false, false, true);
+        //emit WinnerSelected(expectedWinner, prize);
         vrfCoordinator.callBackWithRandomness(
-            requestId,
+            bytes32(0),
             randomness,
             address(lottery)
         );
         assertEq(expectedWinner.balance, prevBalance + prize);
+        assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.CLOSED);
     }
 
     function testCannotSelectWinnerNotSelecting() public {
@@ -175,11 +178,16 @@ contract LotteryIntegrationTest is
     AuthorityDeployer,
     AddressBook
 {
-    event WinnerSelected(address indexed winner, uint256 randomness);
+    event WinnerSelected(address indexed winner, uint256 prize);
 
     Lottery lottery;
 
+    uint256 randomness;
+
     function setUp() public {
+        // You can customize the randomness
+        randomness = 1337;
+
         lottery = new Lottery(
             ETHUSD_PRICE_FEED_ADDRESS,
             FEE,
@@ -195,21 +203,26 @@ contract LotteryIntegrationTest is
     function testBasicIntegration() public {
         lottery.startLottery();
         uint256 entryFee = lottery.getEntryFee_3_4iR();
+        // You can customize the number of players
         uint256 numOfPlayers = 5;
-        for (uint160 i = 1; i <= numOfPlayers; ++i) {
-            hoax(address(uint160(i)), entryFee);
+        for (uint160 i = 0; i < numOfPlayers; ++i) {
+            hoax(address(i), entryFee);
             lottery.enter_Wrc{value: entryFee}();
+        }
+        for (uint160 i = 0; i < numOfPlayers; ++i) {
+            assertEq(lottery.players(i), address(i));
         }
         vm.prank(MY_LINK_FAUCET_ADDRESS);
         LinkToken(LINK_ADDRESS).transfer(address(lottery), FEE);
         lottery.endLottery();
-        bytes32 requestId = bytes32(0);
-        uint256 randomness = 1337;
         address expectedWinner = lottery.players(randomness % numOfPlayers);
         uint256 prevBalance = address(expectedWinner).balance;
         uint256 prize = address(lottery).balance;
+        //vm.expectEmit(true, false, false, true);
+        //emit WinnerSelected(expectedWinner, prize);
         vm.prank(VRF_COORDINATOR_ADDRESS);
-        lottery.rawFulfillRandomness(requestId, randomness);
+        lottery.rawFulfillRandomness(bytes32(0), randomness);
         assertEq(expectedWinner.balance, prevBalance + prize);
+        assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.CLOSED);
     }
 }

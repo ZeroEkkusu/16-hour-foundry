@@ -5,7 +5,7 @@ pragma solidity ^0.8.4;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
-contract ModernToken is ERC20 {
+contract TokenWithIco is ERC20 {
     event Hint(string hint);
 
     address public icoAddr;
@@ -32,14 +32,14 @@ contract Ico {
     error CannotBuyZeroTokens();
     event IcoOver();
 
-    ModernToken public token;
+    TokenWithIco public token;
     uint256 public icoStartTime;
     bool public icoOver;
 
     address payable public owner;
 
     constructor(address tokenAddr, address payable _owner) {
-        token = ModernToken(tokenAddr);
+        token = TokenWithIco(tokenAddr);
         icoStartTime = block.timestamp;
         owner = _owner;
     }

@@ -6,22 +6,24 @@ import {FundMe} from "src/FundMe.sol";
 import {MockV3Aggregator} from "src/test/utils/mocks/MockV3Aggregator.sol";
 
 import {DSTest} from "ds-test/test.sol";
-import {Vm} from "lib/forge-std/src/Vm.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
 import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 import {AddressBook} from "src/test/utils/AddressBook.sol";
+import {Utilities} from "src/test/utils/Utilities.sol";
 
 contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
+    event Withdrawal(uint256 amount);
     uint256 constant MIN_AMOUNT_IN_USD = 50e18;
 
     FundMe fundMe;
 
-    /// @dev You can customize the price of ETH in USD
     uint256 ethPriceInUsd;
 
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
+        // You can customize the price of ETH in USD
         ethPriceInUsd = 1000e18;
 
         address ethUsdPriceFeedAddr = address(
@@ -30,7 +32,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         fundMe = new FundMe(ethUsdPriceFeedAddr, AUTHORITY_ADDRESS);
     }
 
-    function testgetMinimumAmount__8X() public {
+    function testgetMinimumAmount() public {
         assertEq(
             fundMe.getMinimumAmount__8X(),
             (MIN_AMOUNT_IN_USD * 1e18) / ethPriceInUsd
@@ -41,13 +43,15 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         uint256 amount = fundMe.getMinimumAmount__8X();
 
         fundMe.fund{value: amount}();
-        assertEq(fundMe.funders(0), address(this));
         assertEq(address(fundMe).balance, amount);
+        assertEq(fundMe.funders(0), address(this));
+        assertEq(fundMe.funderToAmount(address(this)), amount);
     }
 
     function testCannotFundAmountTooLow() public {
         uint256 minAmount = fundMe.getMinimumAmount__8X();
         uint256 amount = minAmount - 1;
+
         vm.expectRevert(
             abi.encodeWithSelector(
                 FundMe.AmountTooLow.selector,
@@ -59,12 +63,15 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     }
 
     function testWithdraw() public {
-        uint256 amount = fundMe.getMinimumAmount__8X();
-        fundMe.fund{value: amount}();
-
+        fundMe.fund{value: fundMe.getMinimumAmount__8X()}();
+        uint256 funds = address(fundMe).balance;
         uint256 prevBalance = address(this).balance;
+
+        //vm.expectEmit(false, false, false, true);
+        //emit Withdrawal(funds);
         fundMe.withdraw();
-        assertEq(address(this).balance, prevBalance + amount);
+        assertEq(address(this).balance, prevBalance + funds);
+        assertEq(fundMe.funderToAmount(address(this)), 0);
     }
 
     function testCannotWithdrawUnauthorized() public {
@@ -80,7 +87,12 @@ contract FundMeIntegrationTest is
     EthReceiver,
     AddressBook
 {
+    event Withdrawal(uint256 amount);
+
     FundMe fundMe;
+
+    Vm vm = Vm(HEVM_ADDRESS);
+    Utilities utilities = new Utilities();
 
     function setUp() public {
         fundMe = new FundMe(ETHUSD_PRICE_FEED_ADDRESS, AUTHORITY_ADDRESS);
@@ -88,13 +100,30 @@ contract FundMeIntegrationTest is
 
     function testBasicIntegration() public {
         uint256 amount = fundMe.getMinimumAmount__8X();
-        uint256 numOfFunders = 5;
-        for (uint256 i = 1; i <= numOfFunders; ++i) {
+        // You can customize the number of funders
+        uint256 numOfFunders = 2;
+        address payable[] memory funders = utilities.createUsers(2);
+        // You can customize how many times to repeat the actions
+        uint256 times = 2;
+        for (uint256 i = 0; i < numOfFunders * times; ++i) {
+            vm.prank(funders[i % times]);
             fundMe.fund{value: amount}();
         }
-        uint256 prevBalance = address(this).balance;
+        for (uint256 i = 0; i < numOfFunders * times; ++i) {
+            assertEq(fundMe.funders(i), funders[i % times]);
+        }
+        for (uint256 i = 0; i < numOfFunders; ++i) {
+            assertEq(fundMe.funderToAmount(funders[i]), amount * times);
+        }
         uint256 funds = address(fundMe).balance;
+        assertEq(funds, numOfFunders * amount * times);
+        uint256 prevBalance = address(this).balance;
+        //vm.expectEmit(false, false, false, true);
+        //emit Withdrawal(funds);
         fundMe.withdraw();
         assertEq(address(this).balance, prevBalance + funds);
+        for (uint256 i = 0; i < numOfFunders; ++i) {
+            assertEq(fundMe.funderToAmount(funders[i]), 0);
+        }
     }
 }

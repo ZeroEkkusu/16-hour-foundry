@@ -11,7 +11,7 @@ import {Auth, Authority} from "solmate/auth/Auth.sol";
 contract Lottery is VRFConsumerBase, Auth {
     error FunctionalityLocked(LOTTERY_STATE lotteryState);
     error AmountTooLow(uint256 amount, uint256 entryFee);
-    event WinnerSelected(address indexed winner, uint256 _randomness);
+    event WinnerSelected(address indexed winner, uint256 prize);
     enum LOTTERY_STATE {
         CLOSED,
         OPEN,
@@ -48,11 +48,15 @@ contract Lottery is VRFConsumerBase, Auth {
         lotteryState = LOTTERY_STATE.OPEN;
     }
 
+    /// @dev The average user will save on gas if we prioritize this function
+    /// @dev Optimized function name for lower Method ID
     function getEntryFee_3_4iR() public view returns (uint256) {
         (, int256 ethPriceInUsd, , , ) = ethUsdPriceFeed.latestRoundData();
         return 50e26 / uint256(ethPriceInUsd);
     }
 
+    /// @dev The average user will save on gas if we prioritize this function
+    /// @dev Optimized function name for lower Method ID
     function enter_Wrc() public payable {
         if (lotteryState != LOTTERY_STATE.OPEN)
             revert FunctionalityLocked(lotteryState);
@@ -76,9 +80,10 @@ contract Lottery is VRFConsumerBase, Auth {
         require(_randomness > 0);
 
         address payable winner = players[_randomness % players.length];
+        uint256 prize = address(this).balance;
 
-        SafeTransferLib.safeTransferETH(winner, address(this).balance);
-        emit WinnerSelected(winner, _randomness);
+        SafeTransferLib.safeTransferETH(winner, prize);
+        emit WinnerSelected(winner, prize);
 
         players = new address payable[](0);
         lotteryState = LOTTERY_STATE.CLOSED;

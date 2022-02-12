@@ -23,6 +23,8 @@ contract FundMe is Auth {
         ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeedAddr);
     }
 
+    /// @dev The average user will save on gas if we prioritize this function
+    /// @dev Optimized function name for lower Method ID
     function getMinimumAmount__8X() public view returns (uint256) {
         (, int256 ethPriceInUsd, , , ) = ethUsdPriceFeed.latestRoundData();
         return 50e26 / uint256(ethPriceInUsd);
@@ -37,8 +39,9 @@ contract FundMe is Auth {
     }
 
     function withdraw() public requiresAuth {
-        SafeTransferLib.safeTransferETH(msg.sender, address(this).balance);
-        emit Withdrawal(address(this).balance);
+        uint256 funds = address(this).balance;
+        SafeTransferLib.safeTransferETH(msg.sender, funds);
+        emit Withdrawal(funds);
         for (uint256 i = 0; i < funders.length; ++i) {
             funderToAmount[funders[i]] = 0;
         }
