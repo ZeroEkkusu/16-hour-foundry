@@ -4,7 +4,7 @@
 test:
 	make -s test-fundme
 	make -s test-lottery
-	make -s test-tokenwithico
+	make -s test-tokenico
 
 # Test FundMe
 test-fundme:
@@ -16,10 +16,10 @@ test-lottery:
 	make -s unit-test-lottery
 	make -s integration-test-lottery
 
-# Test ModernToken
-test-tokenwithico:
-	make -s unit-test-tokenwithico
-	make -s integration-test-tokenwithico
+# Test TokenIco
+test-tokenico:
+	make -s unit-test-tokenico
+	make -s integration-test-tokenico
 
 # Run unit or integration tests for FundMe
 unit-test-fundme :; make -s all-unit-tests c=FundMe
@@ -29,9 +29,9 @@ integration-test-fundme :; make -s all-integration-tests c=FundMe
 unit-test-lottery :; make -s all-unit-tests c=Lottery
 integration-test-lottery :; make -s all-integration-tests c=Lottery
 
-# Run unit or integration tests for ModernToken
-unit-test-tokenwithico :; make -s all-unit-tests c=ModernToken
-integration-test-tokenwithico :; make -s all-integration-tests c=ModernToken
+# Run unit or integration tests for TokenIco
+unit-test-tokenico :; make -s all-unit-tests c=TokenIco
+integration-test-tokenico :; make -s all-integration-tests c=TokenIco
 
 # Check gas usage quickly
 gas :; forge test --match-test $(t) --force

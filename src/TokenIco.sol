@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
+pragma solidity ^0.8.4;
+
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+
+contract TokenIco is ERC20 {
+    error IcoOver();
+
+    uint256 public icoEndDate;
+    address payable icoOwner;
+
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint8 decimals
+    ) ERC20(name, symbol, decimals) {
+        icoEndDate = block.timestamp + 1 days;
+        icoOwner = payable(msg.sender);
+    }
+
+    function hint() public returns (string memory) {
+        return "You can make the token do something amazing!";
+    }
+
+    function icoBuy() public payable {
+        if (block.timestamp >= icoEndDate) revert IcoOver();
+
+        _mint(msg.sender, msg.value * 100);
+        SafeTransferLib.safeTransferETH(icoOwner, msg.value);
+    }
+}

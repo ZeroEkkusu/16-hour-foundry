@@ -202,26 +202,35 @@ contract LotteryIntegrationTest is
 
     function testBasicIntegration() public {
         lottery.startLottery();
+
         uint256 entryFee = lottery.getEntryFee_3_4iR();
         // You can customize the number of players
         uint256 numOfPlayers = 5;
+
         for (uint160 i = 0; i < numOfPlayers; ++i) {
             hoax(address(i), entryFee);
             lottery.enter_Wrc{value: entryFee}();
         }
+
         for (uint160 i = 0; i < numOfPlayers; ++i) {
             assertEq(lottery.players(i), address(i));
         }
+
         vm.prank(MY_LINK_FAUCET_ADDRESS);
         LinkToken(LINK_ADDRESS).transfer(address(lottery), FEE);
+
         lottery.endLottery();
+
         address expectedWinner = lottery.players(randomness % numOfPlayers);
         uint256 prevBalance = address(expectedWinner).balance;
         uint256 prize = address(lottery).balance;
+
         //vm.expectEmit(true, false, false, true);
         //emit WinnerSelected(expectedWinner, prize);
+
         vm.prank(VRF_COORDINATOR_ADDRESS);
         lottery.rawFulfillRandomness(bytes32(0), randomness);
+
         assertEq(expectedWinner.balance, prevBalance + prize);
         assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.CLOSED);
     }

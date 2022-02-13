@@ -7,13 +7,13 @@ import {MockV3Aggregator} from "src/test/utils/mocks/MockV3Aggregator.sol";
 
 import {DSTest} from "ds-test/test.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {stdCheats} from "forge-std/stdlib.sol";
 import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
 import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 import {AddressBook} from "src/test/utils/AddressBook.sol";
-import {Utilities} from "src/test/utils/Utilities.sol";
 
 contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
-    event Withdrawal(uint256 amount);
+    //event Withdrawal(uint256 amount);
     uint256 constant MIN_AMOUNT_IN_USD = 50e18;
 
     FundMe fundMe;
@@ -83,16 +83,16 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
 
 contract FundMeIntegrationTest is
     DSTest,
+    stdCheats,
     AuthorityDeployer,
     EthReceiver,
     AddressBook
 {
-    event Withdrawal(uint256 amount);
+    //event Withdrawal(uint256 amount);
 
     FundMe fundMe;
 
     Vm vm = Vm(HEVM_ADDRESS);
-    Utilities utilities = new Utilities();
 
     function setUp() public {
         fundMe = new FundMe(ETHUSD_PRICE_FEED_ADDRESS, AUTHORITY_ADDRESS);
@@ -101,29 +101,38 @@ contract FundMeIntegrationTest is
     function testBasicIntegration() public {
         uint256 amount = fundMe.getMinimumAmount__8X();
         // You can customize the number of funders
-        uint256 numOfFunders = 2;
-        address payable[] memory funders = utilities.createUsers(2);
-        // You can customize how many times to repeat the actions
+        uint160 numOfFunders = 5;
+        // You can customize how many times to repeat the process
         uint256 times = 2;
-        for (uint256 i = 0; i < numOfFunders * times; ++i) {
-            vm.prank(funders[i % times]);
+
+        for (uint160 i = 0; i < numOfFunders * times; ++i) {
+            hoax(address(i % numOfFunders));
             fundMe.fund{value: amount}();
         }
-        for (uint256 i = 0; i < numOfFunders * times; ++i) {
-            assertEq(fundMe.funders(i), funders[i % times]);
-        }
-        for (uint256 i = 0; i < numOfFunders; ++i) {
-            assertEq(fundMe.funderToAmount(funders[i]), amount * times);
-        }
+
         uint256 funds = address(fundMe).balance;
+
         assertEq(funds, numOfFunders * amount * times);
+
+        for (uint160 i = 0; i < numOfFunders * times; ++i) {
+            assertEq(fundMe.funders(i), address(i % numOfFunders));
+        }
+
+        for (uint160 i = 0; i < numOfFunders; ++i) {
+            assertEq(fundMe.funderToAmount(address(i)), amount * times);
+        }
+
         uint256 prevBalance = address(this).balance;
+
         //vm.expectEmit(false, false, false, true);
         //emit Withdrawal(funds);
+
         fundMe.withdraw();
+
         assertEq(address(this).balance, prevBalance + funds);
-        for (uint256 i = 0; i < numOfFunders; ++i) {
-            assertEq(fundMe.funderToAmount(funders[i]), 0);
+
+        for (uint160 i = 0; i < numOfFunders; ++i) {
+            assertEq(fundMe.funderToAmount(address(i)), 0);
         }
     }
 }
