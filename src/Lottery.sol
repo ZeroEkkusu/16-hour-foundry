@@ -7,7 +7,7 @@ import {VRFConsumerBase} from "chainlink/VRFConsumerBase.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Auth, Authority} from "solmate/auth/Auth.sol";
 
-/// @notice Enter the lottery with 50 USD in ETH for a chance to win the prize of other players' fees
+/// @notice Enter the lottery with the required amount of USD in ETH for a chance to win the prize of other players' fees
 contract Lottery is VRFConsumerBase, Auth {
     error FunctionalityLocked(LOTTERY_STATE lotteryState);
     error AmountTooLow(uint256 amount, uint256 entryFee);
