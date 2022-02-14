@@ -5,6 +5,7 @@ pragma solidity ^0.8.4;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
+/// @notice An ERC20 token with ICO
 contract TokenIco is ERC20 {
     error IcoOver();
 
