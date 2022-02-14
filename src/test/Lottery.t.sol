@@ -16,20 +16,21 @@ import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     event WinnerSelected(address indexed winner, uint256 prize);
-    uint256 constant ENTRY_FEE_IN_USD = 50e18;
 
     Lottery lottery;
+    uint256 entryFeeInUsd;
+
     LinkToken link;
-    MockVRFCoordinator vrfCoordinator;
-
     uint256 ethPriceInUsd;
-
+    MockVRFCoordinator vrfCoordinator;
     uint256 randomness;
     uint256 fee;
 
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
+        // You can customize the entry fee in USD
+        entryFeeInUsd = 50e18;
         // You can customize the price of ETH in USD
         ethPriceInUsd = 1000e18;
         // You can customize the randomness
@@ -43,6 +44,7 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
         link = new LinkToken();
         vrfCoordinator = new MockVRFCoordinator(address(link));
         lottery = new Lottery(
+            entryFeeInUsd,
             ethUsdPriceFeedAddr,
             fee,
             bytes32(0),
@@ -78,7 +80,7 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     function testGetEntryFee() public {
         assertEq(
             lottery.getEntryFee_3_4iR(),
-            (ENTRY_FEE_IN_USD * 1e18) / ethPriceInUsd
+            (entryFeeInUsd * 1e18) / ethPriceInUsd
         );
     }
 
@@ -170,6 +172,30 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
         vm.prank(address(vrfCoordinator));
         lottery.rawFulfillRandomness(bytes32(0), 1337);
     }
+
+    function testUpdate() public {
+        uint256 newEntryFeeInUsd = entryFeeInUsd * 2;
+        address newEthUsdPriceFeedAddr = address(888);
+        uint256 newFee = fee * 2;
+        bytes32 newKeyHash = bytes32(0);
+
+        lottery.update(
+            newEntryFeeInUsd,
+            newEthUsdPriceFeedAddr,
+            newFee,
+            newKeyHash
+        );
+        assertEq(lottery.entryFeeInUsd(), newEntryFeeInUsd);
+        assertEq(address(lottery.ethUsdPriceFeed()), newEthUsdPriceFeedAddr);
+        assertEq(lottery.fee(), newFee);
+        assertEq(lottery.keyHash(), newKeyHash);
+    }
+
+    function testCannotUpdateUnauthorized() public {
+        vm.prank(address(0xBAD));
+        vm.expectRevert(bytes("UNAUTHORIZED"));
+        lottery.update(0, address(0), 0, bytes32(0));
+    }
 }
 
 contract LotteryIntegrationTest is
@@ -185,10 +211,13 @@ contract LotteryIntegrationTest is
     uint256 randomness;
 
     function setUp() public {
+        // You can customize the entry fee in USD
+        uint256 entryFeeInUsd = 50;
         // You can customize the randomness
         randomness = 1337;
 
         lottery = new Lottery(
+            entryFeeInUsd,
             ETHUSD_PRICE_FEED_ADDRESS,
             FEE,
             KEY_HASH,
@@ -233,5 +262,26 @@ contract LotteryIntegrationTest is
 
         assertEq(expectedWinner.balance, prevBalance + prize);
         assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.CLOSED);
+
+        // You can customize the entry fee in USD
+        uint256 newEntryFeeInUsd = entryFee * 2;
+        // You can customize the address of the ETHUSD price feed
+        address newEthUsdPriceFeedAddr = address(888);
+        // You can customize the fee paid in LINK for randomness
+        uint256 newFee = 1000;
+        // You can customize the key hash
+        bytes32 newKeyHash = bytes32(0);
+
+        lottery.update(
+            newEntryFeeInUsd,
+            newEthUsdPriceFeedAddr,
+            newFee,
+            newKeyHash
+        );
+
+        assertEq(lottery.entryFeeInUsd(), newEntryFeeInUsd);
+        assertEq(address(lottery.ethUsdPriceFeed()), newEthUsdPriceFeedAddr);
+        assertEq(lottery.fee(), newFee);
+        assertEq(lottery.keyHash(), newKeyHash);
     }
 }

@@ -14,28 +14,34 @@ import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     //event Withdrawal(uint256 amount);
-    uint256 constant MIN_AMOUNT_IN_USD = 50e18;
 
     FundMe fundMe;
 
+    uint256 minimumAmountInUsd;
     uint256 ethPriceInUsd;
 
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
+        // You can customize the minimum amount in USD
+        minimumAmountInUsd = 50e18;
         // You can customize the price of ETH in USD
         ethPriceInUsd = 1000e18;
 
         address ethUsdPriceFeedAddr = address(
             new MockV3Aggregator(8, int256(ethPriceInUsd / 1e10))
         );
-        fundMe = new FundMe(ethUsdPriceFeedAddr, AUTHORITY_ADDRESS);
+        fundMe = new FundMe(
+            minimumAmountInUsd,
+            ethUsdPriceFeedAddr,
+            AUTHORITY_ADDRESS
+        );
     }
 
     function testgetMinimumAmount() public {
         assertEq(
             fundMe.getMinimumAmount__8X(),
-            (MIN_AMOUNT_IN_USD * 1e18) / ethPriceInUsd
+            (minimumAmountInUsd * 1e18) / ethPriceInUsd
         );
     }
 
@@ -79,6 +85,21 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         vm.expectRevert(bytes("UNAUTHORIZED"));
         fundMe.withdraw();
     }
+
+    function testUpdate() public {
+        uint256 newMinimumAmountInUsd = minimumAmountInUsd * 2;
+        address newEthUsdPriceFeedAddr = address(999);
+
+        fundMe.update(newMinimumAmountInUsd, newEthUsdPriceFeedAddr);
+        assertEq(fundMe.minimumAmountInUsd(), newMinimumAmountInUsd);
+        assertEq(address(fundMe.ethUsdPriceFeed()), newEthUsdPriceFeedAddr);
+    }
+
+    function testCannotUpdateUnauthorized() public {
+        vm.prank(address(0xBAD));
+        vm.expectRevert(bytes("UNAUTHORIZED"));
+        fundMe.update(0, address(0));
+    }
 }
 
 contract FundMeIntegrationTest is
@@ -95,7 +116,14 @@ contract FundMeIntegrationTest is
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
-        fundMe = new FundMe(ETHUSD_PRICE_FEED_ADDRESS, AUTHORITY_ADDRESS);
+        // You can customize the minimum amount in USD
+        uint256 minimumAmountInUsd = 50e18;
+
+        fundMe = new FundMe(
+            minimumAmountInUsd,
+            ETHUSD_PRICE_FEED_ADDRESS,
+            AUTHORITY_ADDRESS
+        );
     }
 
     function testBasicIntegration() public {
@@ -134,5 +162,15 @@ contract FundMeIntegrationTest is
         for (uint160 i = 0; i < numOfFunders; ++i) {
             assertEq(fundMe.funderToAmount(address(i)), 0);
         }
+
+        // You can customize the minimum amount in USD
+        uint256 newMinimumAmountInUsd = amount * 2;
+        // You can customize the address of the ETHUSD price feed
+        address newEthUsdPriceFeedAddr = address(999);
+
+        fundMe.update(newMinimumAmountInUsd, newEthUsdPriceFeedAddr);
+
+        assertEq(fundMe.minimumAmountInUsd(), newMinimumAmountInUsd);
+        assertEq(address(fundMe.ethUsdPriceFeed()), newEthUsdPriceFeedAddr);
     }
 }

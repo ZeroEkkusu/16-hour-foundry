@@ -8,8 +8,8 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 contract TokenIco is ERC20 {
     error IcoOver();
 
-    uint256 public icoEndDate;
-    address payable icoOwner;
+    uint256 public immutable icoEndDate;
+    address payable immutable icoOwner;
 
     constructor(
         string memory name,

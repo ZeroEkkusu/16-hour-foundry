@@ -19,6 +19,7 @@ contract Lottery is VRFConsumerBase, Auth {
     }
 
     LOTTERY_STATE public lotteryState;
+    uint256 public entryFeeInUsd;
     address payable[] public players;
 
     AggregatorV3Interface public ethUsdPriceFeed;
@@ -26,6 +27,7 @@ contract Lottery is VRFConsumerBase, Auth {
     uint256 public fee;
 
     constructor(
+        uint256 _entryFeeInUsd,
         address _ethUsdPriceFeedAddr,
         uint256 _fee,
         bytes32 _keyHash,
@@ -36,6 +38,7 @@ contract Lottery is VRFConsumerBase, Auth {
         VRFConsumerBase(_vrfCoordinatorAddr, _linkTokenAddr)
         Auth(msg.sender, Authority(_authorityAddr))
     {
+        entryFeeInUsd = _entryFeeInUsd;
         ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeedAddr);
         fee = _fee;
         keyHash = _keyHash;
@@ -52,7 +55,7 @@ contract Lottery is VRFConsumerBase, Auth {
     /// @dev Optimized function name for lower Method ID
     function getEntryFee_3_4iR() public view returns (uint256) {
         (, int256 ethPriceInUsd, , , ) = ethUsdPriceFeed.latestRoundData();
-        return 50e26 / uint256(ethPriceInUsd);
+        return (entryFeeInUsd * 1e8) / uint256(ethPriceInUsd);
     }
 
     /// @dev The average user will save on gas if we prioritize this function
@@ -79,7 +82,10 @@ contract Lottery is VRFConsumerBase, Auth {
             revert FunctionalityLocked(lotteryState);
         require(_randomness > 0);
 
-        address payable winner = players[_randomness % players.length];
+        address payable winner;
+        unchecked {
+            winner = players[_randomness % players.length];
+        }
         uint256 prize = address(this).balance;
 
         SafeTransferLib.safeTransferETH(winner, prize);
@@ -87,5 +93,17 @@ contract Lottery is VRFConsumerBase, Auth {
 
         players = new address payable[](0);
         lotteryState = LOTTERY_STATE.CLOSED;
+    }
+
+    function update(
+        uint256 _entryFeeInUsd,
+        address _ethUsdPriceFeedAddr,
+        uint256 _fee,
+        bytes32 _keyHash
+    ) public requiresAuth {
+        entryFeeInUsd = _entryFeeInUsd;
+        ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeedAddr);
+        fee = _fee;
+        keyHash = _keyHash;
     }
 }
