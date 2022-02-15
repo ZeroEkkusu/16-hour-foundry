@@ -273,6 +273,7 @@ contract LotteryIntegrationTest is
         assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.CLOSED);
         for (uint160 i = 0; i < numOfPlayers * times; ++i) {
             bool exists;
+
             try lottery.players(i) {
                 exists = true;
             } catch {}
