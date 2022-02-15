@@ -22,9 +22,9 @@ contract Lottery is VRFConsumerBase, Auth {
     uint256 public entryFeeInUsd;
     address payable[] public players;
 
-    AggregatorV3Interface public ethUsdPriceFeed;
-    bytes32 public keyHash;
-    uint256 public fee;
+    AggregatorV3Interface internal ethUsdPriceFeed;
+    bytes32 internal keyHash;
+    uint256 internal fee;
 
     /// @dev Do not send money to the constructor
     /// @dev Optimized for lower deployment cost

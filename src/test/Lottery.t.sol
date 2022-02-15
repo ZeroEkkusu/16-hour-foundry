@@ -175,9 +175,9 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
 
     function testUpdate() public {
         uint256 newEntryFeeInUsd = entryFeeInUsd * 2;
-        address newEthUsdPriceFeedAddr = address(888);
+        address newEthUsdPriceFeedAddr = address(999);
         uint256 newFee = fee * 2;
-        bytes32 newKeyHash = bytes32(0);
+        bytes32 newKeyHash = bytes32(uint256(1));
 
         lottery.update(
             newEntryFeeInUsd,
@@ -186,9 +186,16 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
             newKeyHash
         );
         assertEq(lottery.entryFeeInUsd(), newEntryFeeInUsd);
-        assertEq(address(lottery.ethUsdPriceFeed()), newEthUsdPriceFeedAddr);
-        assertEq(lottery.fee(), newFee);
-        assertEq(lottery.keyHash(), newKeyHash);
+        address loadedEthUsdPriceFeedAddr = address(
+            uint160(uint256(vm.load(address(lottery), bytes32(uint256(5)))))
+        );
+        assertEq(loadedEthUsdPriceFeedAddr, newEthUsdPriceFeedAddr);
+        bytes32 loadedKeyHash = vm.load(address(lottery), bytes32(uint256(6)));
+        assertEq(loadedKeyHash, newKeyHash);
+        uint256 loadedFee = uint256(
+            vm.load(address(lottery), bytes32(uint256(7)))
+        );
+        assertEq(loadedFee, newFee);
     }
 
     function testCannotUpdateUnauthorized() public {
@@ -234,15 +241,17 @@ contract LotteryIntegrationTest is
 
         uint256 entryFee = lottery.getEntryFee_3_4iR();
         // You can customize the number of players
-        uint256 numOfPlayers = 5;
+        uint160 numOfPlayers = 5;
+        // You can customize how many times to repeat the process
+        uint256 times = 2;
 
-        for (uint160 i = 0; i < numOfPlayers; ++i) {
-            hoax(address(i), entryFee);
+        for (uint160 i = 0; i < numOfPlayers * times; ++i) {
+            hoax(address(i % numOfPlayers), entryFee);
             lottery.enter_Wrc{value: entryFee}();
         }
 
-        for (uint160 i = 0; i < numOfPlayers; ++i) {
-            assertEq(lottery.players(i), address(i));
+        for (uint160 i = 0; i < numOfPlayers * times; ++i) {
+            assertEq(lottery.players(i), address(i % numOfPlayers));
         }
 
         vm.prank(MY_LINK_FAUCET_ADDRESS);
@@ -262,6 +271,13 @@ contract LotteryIntegrationTest is
 
         assertEq(expectedWinner.balance, prevBalance + prize);
         assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.CLOSED);
+        for (uint160 i = 0; i < numOfPlayers * times; ++i) {
+            bool exists;
+            try lottery.players(i) {
+                exists = true;
+            } catch {}
+            assertTrue(!exists);
+        }
 
         // You can customize the entry fee in USD
         uint256 newEntryFeeInUsd = entryFee * 2;
@@ -280,8 +296,15 @@ contract LotteryIntegrationTest is
         );
 
         assertEq(lottery.entryFeeInUsd(), newEntryFeeInUsd);
-        assertEq(address(lottery.ethUsdPriceFeed()), newEthUsdPriceFeedAddr);
-        assertEq(lottery.fee(), newFee);
-        assertEq(lottery.keyHash(), newKeyHash);
+        address loadedEthUsdPriceFeedAddr = address(
+            uint160(uint256(vm.load(address(lottery), bytes32(uint256(5)))))
+        );
+        assertEq(loadedEthUsdPriceFeedAddr, newEthUsdPriceFeedAddr);
+        bytes32 loadedKeyHash = vm.load(address(lottery), bytes32(uint256(6)));
+        assertEq(loadedKeyHash, newKeyHash);
+        uint256 loadedFee = uint256(
+            vm.load(address(lottery), bytes32(uint256(7)))
+        );
+        assertEq(loadedFee, newFee);
     }
 }

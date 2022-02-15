@@ -12,11 +12,11 @@ contract FundMe is Auth {
     error AmountTooLow(uint256 amount, uint256 minAmount);
     event Withdrawal(uint256 amount);
 
+    uint256 public minimumAmountInUsd;
     mapping(address => uint256) public funderToAmount;
     address[] public funders;
 
-    uint256 public minimumAmountInUsd;
-    AggregatorV3Interface public ethUsdPriceFeed;
+    AggregatorV3Interface internal ethUsdPriceFeed;
 
     /// @dev Do not send money to the constructor
     /// @dev Optimized for lower deployment cost
