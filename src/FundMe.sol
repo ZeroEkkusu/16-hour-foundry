@@ -18,11 +18,13 @@ contract FundMe is Auth {
     uint256 public minimumAmountInUsd;
     AggregatorV3Interface public ethUsdPriceFeed;
 
+    /// @dev Do not send money to the constructor
+    /// @dev Optimized for lower deployment cost
     constructor(
         uint256 _minimumAmountInUsd,
         address _ethUsdPriceFeedAddr,
         address _authorityAddr
-    ) Auth(msg.sender, Authority(_authorityAddr)) {
+    ) payable Auth(msg.sender, Authority(_authorityAddr)) {
         minimumAmountInUsd = _minimumAmountInUsd;
         ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeedAddr);
     }

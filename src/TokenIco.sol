@@ -12,11 +12,13 @@ contract TokenIco is ERC20 {
     uint256 public immutable icoEndDate;
     address payable immutable icoOwner;
 
+    /// @dev Do not send money to the constructor
+    /// @dev Optimized for lower deployment cost
     constructor(
         string memory name,
         string memory symbol,
         uint8 decimals
-    ) ERC20(name, symbol, decimals) {
+    ) payable ERC20(name, symbol, decimals) {
         icoEndDate = block.timestamp + 1 days;
         icoOwner = payable(msg.sender);
     }

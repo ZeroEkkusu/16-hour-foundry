@@ -26,6 +26,8 @@ contract Lottery is VRFConsumerBase, Auth {
     bytes32 public keyHash;
     uint256 public fee;
 
+    /// @dev Do not send money to the constructor
+    /// @dev Optimized for lower deployment cost
     constructor(
         uint256 _entryFeeInUsd,
         address _ethUsdPriceFeedAddr,
@@ -35,6 +37,7 @@ contract Lottery is VRFConsumerBase, Auth {
         address _linkTokenAddr,
         address _authorityAddr
     )
+        payable
         VRFConsumerBase(_vrfCoordinatorAddr, _linkTokenAddr)
         Auth(msg.sender, Authority(_authorityAddr))
     {
