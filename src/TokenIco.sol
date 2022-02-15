@@ -23,7 +23,7 @@ contract TokenIco is ERC20 {
         icoOwner = payable(msg.sender);
     }
 
-    function hint() public returns (string memory) {
+    function hint() public pure returns (string memory) {
         return "You can make the token do something amazing!";
     }
 
