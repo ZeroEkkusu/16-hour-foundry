@@ -72,7 +72,6 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         fundMe.fund{value: fundMe.getMinimumAmount__8X()}();
         uint256 funds = address(fundMe).balance;
         uint256 prevBalance = address(this).balance;
-        bool exists;
 
         //vm.expectEmit(false, false, false, true);
         //emit Withdrawal(funds);
@@ -80,9 +79,8 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         assertEq(address(this).balance, prevBalance + funds);
         assertEq(fundMe.funderToAmount(address(this)), 0);
         try fundMe.funders(0) {
-            exists = true;
+            revert();
         } catch {}
-        assertTrue(!exists);
     }
 
     function testCannotWithdrawUnauthorized() public {
@@ -170,14 +168,9 @@ contract FundMeIntegrationTest is
         for (uint160 i = 0; i < numOfFunders; ++i) {
             assertEq(fundMe.funderToAmount(address(i)), 0);
         }
-        for (uint160 i = 0; i < numOfFunders * times; ++i) {
-            bool exists;
-
-            try fundMe.funders(i) {
-                exists = true;
-            } catch {}
-            assertTrue(!exists);
-        }
+        try fundMe.funders(0) {
+            revert();
+        } catch {}
 
         // You can customize the minimum amount in USD
         uint256 newMinimumAmountInUsd = amount * 2;

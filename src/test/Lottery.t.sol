@@ -160,6 +160,9 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
         );
         assertEq(expectedWinner.balance, prevBalance + prize);
         assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.CLOSED);
+        try lottery.players(0) {
+            revert();
+        } catch {}
     }
 
     function testCannotSelectWinnerNotSelecting() public {
@@ -271,14 +274,9 @@ contract LotteryIntegrationTest is
 
         assertEq(expectedWinner.balance, prevBalance + prize);
         assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.CLOSED);
-        for (uint160 i = 0; i < numOfPlayers * times; ++i) {
-            bool exists;
-
-            try lottery.players(i) {
-                exists = true;
-            } catch {}
-            assertTrue(!exists);
-        }
+        try lottery.players(0) {
+            revert();
+        } catch {}
 
         // You can customize the entry fee in USD
         uint256 newEntryFeeInUsd = entryFee * 2;
