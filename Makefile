@@ -34,7 +34,7 @@ unit-test-tokenico :; make -s all-unit-tests c=TokenIco
 integration-test-tokenico :; make -s all-integration-tests c=TokenIco
 
 # Check gas usage quickly
-gas :; forge test --match-test $(t) --force
+gas :; forge test --match-test test$(t) --force
 
 ####################
 # NOT FOR ENDUSERS #
