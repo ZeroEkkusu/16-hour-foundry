@@ -10,9 +10,3 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/brockelmore/forge-std
-[submodule "lib/v3-periphery"]
-	path = lib/v3-periphery
-	url = https://github.com/Uniswap/v3-periphery
-[submodule "lib/v3-core"]
-	path = lib/v3-core
-	url = https://github.com/Uniswap/v3-core

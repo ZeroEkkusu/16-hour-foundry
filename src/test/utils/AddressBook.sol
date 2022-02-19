@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 /// @notice A convenience contract for fetching the right addresses of commonly used contracts
-/// @dev Just inherit `AddressBook` in your testing contract and access the addresses below
+/// @dev Just inherit `AddressBook` in your testing contract and access the addresses
 /// @dev If you need more chains, add them after the ETHEREUM MAINNET SETUP
 abstract contract AddressBook {
     // CHAINLINK
@@ -15,6 +15,11 @@ abstract contract AddressBook {
     address immutable MY_LINK_FAUCET_ADDRESS;
     // AAVE
     address immutable WETH_GATEWAY_ADDRESS;
+    // UNISWAP
+    address immutable SWAP_ROUTER_ADDRESS;
+    // TOKENS
+    address immutable WETH_ADDRESS;
+    address immutable DAI_ADDRESS;
 
     constructor() {
         // Chainlink
@@ -26,31 +31,33 @@ abstract contract AddressBook {
         address myLinkFaucetAddr;
         // Aave
         address wethGatewayAddr;
+        // Uniswap
+        address swapRouterAddr;
+        // tokens
+        address daiAddr;
+        address wethAddr;
 
         uint256 id = block.chainid;
 
         // ETHEREUM MAINNET SETUP
         if (id == 1) {
             // Chainlink
-            linkAddr = address(0x514910771AF9Ca656af840dff83E8264EcF986CA);
-            ethUsdPriceFeedAddr = address(
-                0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
-            );
-            vrfCoordinatorAddr = address(
-                0xf0d54349aDdcf704F77AE15b96510dEA15cb7952
-            );
+            linkAddr = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
+            ethUsdPriceFeedAddr = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
+            vrfCoordinatorAddr = 0xf0d54349aDdcf704F77AE15b96510dEA15cb7952;
             keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
             fee = 2e18;
-            myLinkFaucetAddr = address(
-                0x98C63b7B319dFBDF3d811530F2ab9DfE4983Af9D
-            );
+            myLinkFaucetAddr = 0x98C63b7B319dFBDF3d811530F2ab9DfE4983Af9D;
             // Aave
-            wethGatewayAddr = address(
-                0xcc9a0B7c43DC2a5F023Bb9b738E45B0Ef6B06E04
-            );
+            wethGatewayAddr = 0xcc9a0B7c43DC2a5F023Bb9b738E45B0Ef6B06E04;
+            // Uniswap
+            swapRouterAddr = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+            //tokens
+            wethAddr = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+            daiAddr = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         }
 
-        // YOU CAN ADD MORE CHAINS HERE
+        // YOU CAN ADD MORE CHAINS ABOVE THIS LINE
 
         // Chainlink
         LINK_ADDRESS = linkAddr;
@@ -61,5 +68,10 @@ abstract contract AddressBook {
         MY_LINK_FAUCET_ADDRESS = myLinkFaucetAddr;
         // Aave
         WETH_GATEWAY_ADDRESS = wethGatewayAddr;
+        // Uniswap
+        SWAP_ROUTER_ADDRESS = swapRouterAddr;
+        // token
+        WETH_ADDRESS = wethAddr;
+        DAI_ADDRESS = daiAddr;
     }
 }

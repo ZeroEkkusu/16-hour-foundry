@@ -6,9 +6,9 @@ fuzz_runs = 256
 optimizer = true
 optimizer_runs = 1000000
 remappings = [
-    'ds-test/=lib/ds-test/src/',
     'chainlink/=lib/chainlink-brownie-contracts/contracts/src/v0.8/',
-    'aave/=lib/protocol-v2/contracts',
+    'aave/=lib/protocol-v2/contracts/',
+    'uniswap/=lib/v3-periphery/contracts/',
     ]
 verbosity = 3
 

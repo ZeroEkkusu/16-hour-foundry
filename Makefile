@@ -1,10 +1,16 @@
 -include .env
 
+
+# Update libs
+update :; forge update
+
+
 # Test all
 test:
 	make -s test-fundme
 	make -s test-lottery
 	make -s test-tokenico
+	make -s test-defiantaave
 
 # Test FundMe
 test-fundme:
@@ -21,6 +27,11 @@ test-tokenico:
 	make -s unit-test-tokenico
 	make -s integration-test-tokenico
 
+# Test DefiantAave
+test-defiantaave:
+	make -s unit-test-defiantaave
+	make -s integration-test-defiantaave
+
 # Run unit or integration tests for FundMe
 unit-test-fundme :; make -s all-unit-tests c=FundMe
 integration-test-fundme :; make -s all-integration-tests c=FundMe
@@ -33,8 +44,14 @@ integration-test-lottery :; make -s all-integration-tests c=Lottery
 unit-test-tokenico :; make -s all-unit-tests c=TokenIco
 integration-test-tokenico :; make -s all-integration-tests c=TokenIco
 
+# Run unit or integration tests for DefiantAave
+unit-test-defiantaave :; forge test --match-contract DefiantAaveUnitTest --fork-url $(ETH_RPC_URL)
+integration-test-defiantaave :; make -s all-integration-tests c=DefiantAave
+
+
 # Check gas usage quickly
 gas :; forge test --match-test test$(t) --force
+
 
 ####################
 # NOT FOR ENDUSERS #
