@@ -4,6 +4,8 @@ pragma solidity ^0.8.4;
 
 import {IWETHGateway} from "src/interfaces/IWETHGateway.sol";
 import {ILendingPoolAddressesProvider} from "src/interfaces/ILendingPoolAddressesProvider.sol";
+import {ILendingPool} from "src/interfaces/ILendingPool.sol";
+import {IProtocolDataProvider} from "src/interfaces/IProtocolDataProvider.sol";
 import {ISwapRouter} from "src/interfaces/ISwapRouter.sol";
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
@@ -11,17 +13,38 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
 contract DefiantAave {
     IWETHGateway internal wethGateway;
+    ILendingPoolAddressesProvider internal lendingPoolAddressProvider;
+    ILendingPool internal lendingPool;
+    IProtocolDataProvider internal protocolDataProvider;
 
     ISwapRouter internal swapRouter;
 
-    constructor(address wethGatewayAddr, address swapRouterAddr) payable {
+    constructor(
+        address wethGatewayAddr,
+        address lendingPoolAddressProviderAddr,
+        address protocolDataProviderAddr,
+        address swapRouterAddr
+    ) payable {
         wethGateway = IWETHGateway(wethGatewayAddr);
+        lendingPoolAddressProvider = ILendingPoolAddressesProvider(
+            lendingPoolAddressProviderAddr
+        );
+        lendingPool = ILendingPool(lendingPoolAddressProvider.getLendingPool());
+        protocolDataProvider = IProtocolDataProvider(protocolDataProviderAddr);
 
         swapRouter = ISwapRouter(swapRouterAddr);
     }
 
     function startEarning() public payable {
-        //wethGateway.depositETH(lendingPool, onBehalfOf, referralCode);
+        wethGateway.depositETH{value: msg.value}(
+            address(lendingPool),
+            msg.sender,
+            0
+        );
+    }
+
+    function invest(address tokenAddr) public {
+        //lendingPool.borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf)
     }
 
     /// @dev The calling address must approve this contract

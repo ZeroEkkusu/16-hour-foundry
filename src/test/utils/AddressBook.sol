@@ -15,6 +15,8 @@ abstract contract AddressBook {
     address immutable MY_LINK_FAUCET_ADDRESS;
     // AAVE
     address immutable WETH_GATEWAY_ADDRESS;
+    address immutable LENDING_POOL_ADDRESS_PROVIDER_ADDRESS;
+    address immutable PROTOCOL_DATA_PROVIDER_ADDRESS;
     // UNISWAP
     address immutable SWAP_ROUTER_ADDRESS;
     // TOKENS
@@ -31,6 +33,8 @@ abstract contract AddressBook {
         address myLinkFaucetAddr;
         // Aave
         address wethGatewayAddr;
+        address lendingPoolAddressesProviderAddr;
+        address protocolDataProviderAddr;
         // Uniswap
         address swapRouterAddr;
         // tokens
@@ -50,9 +54,11 @@ abstract contract AddressBook {
             myLinkFaucetAddr = 0x98C63b7B319dFBDF3d811530F2ab9DfE4983Af9D;
             // Aave
             wethGatewayAddr = 0xcc9a0B7c43DC2a5F023Bb9b738E45B0Ef6B06E04;
+            lendingPoolAddressesProviderAddr = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
+            protocolDataProviderAddr = 0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d;
             // Uniswap
             swapRouterAddr = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-            //tokens
+            // tokens
             wethAddr = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
             daiAddr = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         }
@@ -68,6 +74,8 @@ abstract contract AddressBook {
         MY_LINK_FAUCET_ADDRESS = myLinkFaucetAddr;
         // Aave
         WETH_GATEWAY_ADDRESS = wethGatewayAddr;
+        LENDING_POOL_ADDRESS_PROVIDER_ADDRESS = lendingPoolAddressesProviderAddr;
+        PROTOCOL_DATA_PROVIDER_ADDRESS = protocolDataProviderAddr;
         // Uniswap
         SWAP_ROUTER_ADDRESS = swapRouterAddr;
         // token
