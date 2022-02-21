@@ -10,7 +10,8 @@ import {Auth, Authority} from "solmate/auth/Auth.sol";
 /// @notice The owner can withdraw funds at any time
 contract FundMe is Auth {
     error AmountTooLow(uint256 amount, uint256 minAmount);
-    event Withdrawal(uint256 amount);
+    event Withdrawal(uint256 funds);
+    event Updated(uint256 _minimumAmountInUsd, address _ethUsdPriceFeedAddr);
 
     uint256 public minimumAmountInUsd;
     mapping(address => uint256) public funderToAmount;
@@ -65,5 +66,6 @@ contract FundMe is Auth {
     {
         minimumAmountInUsd = _minimumAmountInUsd;
         ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeedAddr);
+        emit Updated(_minimumAmountInUsd, _ethUsdPriceFeedAddr);
     }
 }

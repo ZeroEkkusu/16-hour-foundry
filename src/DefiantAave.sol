@@ -3,6 +3,7 @@
 pragma solidity ^0.8.4;
 
 import {IWETHGateway} from "src/interfaces/IWETHGateway.sol";
+import {ILendingPoolAddressesProvider} from "src/interfaces/ILendingPoolAddressesProvider.sol";
 import {ISwapRouter} from "src/interfaces/ISwapRouter.sol";
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
@@ -17,6 +18,10 @@ contract DefiantAave {
         wethGateway = IWETHGateway(wethGatewayAddr);
 
         swapRouter = ISwapRouter(swapRouterAddr);
+    }
+
+    function startEarning() public payable {
+        //wethGateway.depositETH(lendingPool, onBehalfOf, referralCode);
     }
 
     /// @dev The calling address must approve this contract

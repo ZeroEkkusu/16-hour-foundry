@@ -12,6 +12,12 @@ contract Lottery is VRFConsumerBase, Auth {
     error FunctionalityLocked(LOTTERY_STATE lotteryState);
     error AmountTooLow(uint256 amount, uint256 entryFee);
     event WinnerSelected(address indexed winner, uint256 prize);
+    event Updated(
+        uint256 _entryFeeInUsd,
+        address _ethUsdPriceFeedAddr,
+        uint256 _fee,
+        bytes32 _keyHash
+    );
     enum LOTTERY_STATE {
         CLOSED,
         OPEN,
@@ -108,5 +114,6 @@ contract Lottery is VRFConsumerBase, Auth {
         ethUsdPriceFeed = AggregatorV3Interface(_ethUsdPriceFeedAddr);
         fee = _fee;
         keyHash = _keyHash;
+        emit Updated(_entryFeeInUsd, _ethUsdPriceFeedAddr, _fee, _keyHash);
     }
 }
