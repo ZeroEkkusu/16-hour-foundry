@@ -8,10 +8,11 @@ import {DefiantAave} from "src/DefiantAave.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {DSTest} from "ds-test/test.sol";
+import {stdCheats} from "forge-std/stdlib.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {AddressBook} from "src/test/utils/AddressBook.sol";
 
-contract DefiantAaveUnitTest is DSTest, AddressBook {
+contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
     ERC20 weth;
     ERC20 dai;
     ILendingPoolAddressesProvider lendingPoolAddressProvider;

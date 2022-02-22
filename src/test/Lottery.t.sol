@@ -16,6 +16,12 @@ import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     event WinnerSelected(address indexed winner, uint256 prize);
+    event Updated(
+        uint256 _entryFeeInUsd,
+        address _ethUsdPriceFeedAddr,
+        uint256 _fee,
+        bytes32 _keyHash
+    );
 
     Lottery lottery;
     uint256 entryFeeInUsd;
@@ -151,8 +157,8 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
         uint256 prize = address(lottery).balance;
         uint256 prevBalance = expectedWinner.balance;
 
-        //vm.expectEmit(true, false, false, true);
-        //emit WinnerSelected(expectedWinner, prize);
+        vm.expectEmit(true, false, false, true);
+        emit WinnerSelected(expectedWinner, prize);
         vrfCoordinator.callBackWithRandomness(
             bytes32(0),
             randomness,
@@ -182,6 +188,13 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
         uint256 newFee = fee * 2;
         bytes32 newKeyHash = bytes32(uint256(1));
 
+        vm.expectEmit(false, false, false, true);
+        emit Updated(
+            newEntryFeeInUsd,
+            newEthUsdPriceFeedAddr,
+            newFee,
+            newKeyHash
+        );
         lottery.update(
             newEntryFeeInUsd,
             newEthUsdPriceFeedAddr,
@@ -215,10 +228,17 @@ contract LotteryIntegrationTest is
     AddressBook
 {
     event WinnerSelected(address indexed winner, uint256 prize);
+    event Updated(
+        uint256 _entryFeeInUsd,
+        address _ethUsdPriceFeedAddr,
+        uint256 _fee,
+        bytes32 _keyHash
+    );
 
     Lottery lottery;
-
     uint256 randomness;
+
+    Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
         // You can customize the entry fee in USD
@@ -236,8 +256,6 @@ contract LotteryIntegrationTest is
             AUTHORITY_ADDRESS
         );
     }
-
-    Vm vm = Vm(HEVM_ADDRESS);
 
     function testBasicIntegration() public {
         lottery.startLottery();
@@ -266,8 +284,8 @@ contract LotteryIntegrationTest is
         uint256 prevBalance = address(expectedWinner).balance;
         uint256 prize = address(lottery).balance;
 
-        //vm.expectEmit(true, false, false, true);
-        //emit WinnerSelected(expectedWinner, prize);
+        vm.expectEmit(true, false, false, true);
+        emit WinnerSelected(expectedWinner, prize);
 
         vm.prank(VRF_COORDINATOR_ADDRESS);
         lottery.rawFulfillRandomness(bytes32(0), randomness);
@@ -286,6 +304,14 @@ contract LotteryIntegrationTest is
         uint256 newFee = 1000;
         // You can customize the key hash
         bytes32 newKeyHash = bytes32(0);
+
+        vm.expectEmit(false, false, false, true);
+        emit Updated(
+            newEntryFeeInUsd,
+            newEthUsdPriceFeedAddr,
+            newFee,
+            newKeyHash
+        );
 
         lottery.update(
             newEntryFeeInUsd,

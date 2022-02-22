@@ -43,9 +43,11 @@ contract DefiantAave {
         );
     }
 
-    function invest(address tokenAddr) public {
-        //lendingPool.borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf)
+    function openShort(address tokenAddr) public {
+        //lendingPool.borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf);
     }
+
+    function closeShort(address tokenAddr) public {}
 
     /// @dev The calling address must approve this contract
     /// @dev to spend at least `_amountIn` worth of its `_tokenIn` for this function to succeed

@@ -13,7 +13,8 @@ import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
-    //event Withdrawal(uint256 amount);
+    event Withdrawal(uint256 amount);
+    event Updated(uint256 _minimumAmountInUsd, address _ethUsdPriceFeedAddr);
 
     FundMe fundMe;
 
@@ -73,8 +74,8 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         uint256 funds = address(fundMe).balance;
         uint256 prevBalance = address(this).balance;
 
-        //vm.expectEmit(false, false, false, true);
-        //emit Withdrawal(funds);
+        vm.expectEmit(false, false, false, true);
+        emit Withdrawal(funds);
         fundMe.withdraw();
         assertEq(address(this).balance, prevBalance + funds);
         assertEq(fundMe.funderToAmount(address(this)), 0);
@@ -93,6 +94,8 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         uint256 newMinimumAmountInUsd = minimumAmountInUsd * 2;
         address newEthUsdPriceFeedAddr = address(999);
 
+        vm.expectEmit(false, false, false, true);
+        emit Updated(newMinimumAmountInUsd, newEthUsdPriceFeedAddr);
         fundMe.update(newMinimumAmountInUsd, newEthUsdPriceFeedAddr);
         assertEq(fundMe.minimumAmountInUsd(), newMinimumAmountInUsd);
         address loadedEthUsdPriceFeedAddr = address(
@@ -115,7 +118,8 @@ contract FundMeIntegrationTest is
     EthReceiver,
     AddressBook
 {
-    //event Withdrawal(uint256 amount);
+    event Withdrawal(uint256 amount);
+    event Updated(uint256 _minimumAmountInUsd, address _ethUsdPriceFeedAddr);
 
     FundMe fundMe;
 
@@ -158,8 +162,8 @@ contract FundMeIntegrationTest is
 
         uint256 prevBalance = address(this).balance;
 
-        //vm.expectEmit(false, false, false, true);
-        //emit Withdrawal(funds);
+        vm.expectEmit(false, false, false, true);
+        emit Withdrawal(funds);
 
         fundMe.withdraw();
 
@@ -176,6 +180,9 @@ contract FundMeIntegrationTest is
         uint256 newMinimumAmountInUsd = amount * 2;
         // You can customize the address of the ETHUSD price feed
         address newEthUsdPriceFeedAddr = address(999);
+
+        vm.expectEmit(false, false, false, true);
+        emit Updated(newMinimumAmountInUsd, newEthUsdPriceFeedAddr);
 
         fundMe.update(newMinimumAmountInUsd, newEthUsdPriceFeedAddr);
 
