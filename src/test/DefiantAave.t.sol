@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 
 import {ILendingPoolAddressesProvider} from "src/interfaces/ILendingPoolAddressesProvider.sol";
 import {IProtocolDataProvider} from "src/interfaces/IProtocolDataProvider.sol";
+import {IDebtToken} from "src/interfaces/IDebtToken.sol";
 import {DefiantAave} from "src/DefiantAave.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
@@ -14,20 +15,22 @@ import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
     ERC20 weth;
-    ERC20 dai;
+    ERC20 aWeth;
+    ERC20 asset;
+    IDebtToken sdAsset;
+    IDebtToken vdAsset;
     ILendingPoolAddressesProvider lendingPoolAddressProvider;
     IProtocolDataProvider protocolDataProvider;
-    ERC20 aWeth;
 
     DefiantAave defiantAave;
-    uint256 amount;
-    uint24 daiWethPoolFee = 3000;
+    uint256 wethAmount;
 
     Vm vm = Vm(HEVM_ADDRESS);
 
     constructor() {
         weth = ERC20(WETH_ADDRESS);
-        dai = ERC20(DAI_ADDRESS);
+        // You can customize which asset to short
+        asset = ERC20(DAI_ADDRESS);
         lendingPoolAddressProvider = ILendingPoolAddressesProvider(
             LENDING_POOL_ADDRESS_PROVIDER_ADDRESS
         );
@@ -35,13 +38,17 @@ contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
             PROTOCOL_DATA_PROVIDER_ADDRESS
         );
         (address aWethAddr, , ) = protocolDataProvider
-            .getReserveTokensAddresses(address(weth));
+            .getReserveTokensAddresses(WETH_ADDRESS);
+        (, address sdAssetAddr, address vdAssetAddr) = protocolDataProvider
+            .getReserveTokensAddresses(address(asset));
         aWeth = ERC20(aWethAddr);
+        sdAsset = IDebtToken(sdAssetAddr);
+        vdAsset = IDebtToken(vdAssetAddr);
     }
 
     function setUp() public {
-        // You can customize the amount of DAI to transfer to this contract
-        amount = 10000e18;
+        // You can customize the minimum amount of WETH to transfer to this contract
+        wethAmount = 1 ether;
 
         defiantAave = new DefiantAave(
             WETH_GATEWAY_ADDRESS,
@@ -49,27 +56,74 @@ contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
             PROTOCOL_DATA_PROVIDER_ADDRESS,
             SWAP_ROUTER_ADDRESS
         );
-        vm.prank(DAI_ADDRESS);
-        dai.transfer(address(this), amount);
-        dai.approve(address(defiantAave), 2**256 - 1);
+        tip(WETH_ADDRESS, address(this), wethAmount);
+        weth.approve(address(defiantAave), 2**256 - 1);
+        sdAsset.approveDelegation(address(defiantAave), 2**256 - 1);
+        vdAsset.approveDelegation(address(defiantAave), 2**256 - 1);
     }
 
     function testStartEarning() public {
-        defiantAave.startEarning{value: 1 ether}();
-        assertEq(aWeth.balanceOf(address(this)), 1e18);
+        defiantAave.startEarning{value: wethAmount}();
+        assertEq(aWeth.balanceOf(address(this)), wethAmount);
     }
 
-    function testSwapDaiWeth() public {
-        defiantAave.swapExactInputSingle(
-            DAI_ADDRESS,
-            amount,
-            WETH_ADDRESS,
-            daiWethPoolFee
+    function testStartEarningWrapped() public {
+        defiantAave.startEarningWrapped(wethAmount);
+        assertEq(aWeth.balanceOf(address(this)), wethAmount);
+    }
+
+    function testCannotStartEarningWrappedInsufficientFunds() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DefiantAave.InsufficientFunds.selector,
+                wethAmount * 2,
+                wethAmount
+            )
         );
-        emit log_named_decimal_uint(
-            "Amount of WETH received: ",
-            weth.balanceOf(address(this)),
-            18
+        defiantAave.startEarningWrapped(wethAmount * 2);
+    }
+
+    function testOpenShort() public {
+        defiantAave.startEarningWrapped(wethAmount);
+        // You can customize the interest rate mode to use (stable: 1, variable: 2)
+        uint256 interestRateMode = 1;
+        // You can customize the uniswap pool fee
+        uint24 uniswapPoolFee = 3000;
+        // You can customize whether or not to deposit WETH in the lending pool after opening a short
+        bool continueEarning = true;
+        IDebtToken dAsset = interestRateMode == 1 ? sdAsset : vdAsset;
+        uint256 amountInWeth = wethAmount / 10;
+        emit log_uint(amountInWeth);
+        uint256 prevBalance = weth.balanceOf(address(this));
+
+        defiantAave.openShort(
+            amountInWeth,
+            address(asset),
+            interestRateMode,
+            uniswapPoolFee,
+            continueEarning
         );
+        (uint256 amount, ) = defiantAave.calculateAmount(
+            amountInWeth,
+            address(asset)
+        );
+        assertEq(dAsset.balanceOf(address(this)), amount);
+        if (continueEarning) {
+            assertGe(
+                weth.balanceOf(address(this)),
+                (prevBalance * 0.99e18) / 1e18
+            );
+        }
+    }
+
+    function testCannotOpenShortInsufficientFunds() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DefiantAave.InsufficientFunds.selector,
+                wethAmount,
+                0
+            )
+        );
+        defiantAave.openShort(wethAmount, address(asset), 1, 3000, true);
     }
 }
