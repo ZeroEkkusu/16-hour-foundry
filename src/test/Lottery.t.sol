@@ -275,8 +275,7 @@ contract LotteryIntegrationTest is
             assertEq(lottery.players(i), address(i % numOfPlayers));
         }
 
-        vm.prank(MY_LINK_FAUCET_ADDRESS);
-        LinkToken(LINK_ADDRESS).transfer(address(lottery), FEE);
+        tip(LINK_ADDRESS, address(lottery), FEE);
 
         lottery.endLottery();
 

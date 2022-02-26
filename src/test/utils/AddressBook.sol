@@ -12,7 +12,6 @@ abstract contract AddressBook {
     address immutable VRF_COORDINATOR_ADDRESS;
     bytes32 immutable KEY_HASH;
     uint256 immutable FEE;
-    address immutable MY_LINK_FAUCET_ADDRESS;
     // AAVE
     address immutable WETH_GATEWAY_ADDRESS;
     address immutable LENDING_POOL_ADDRESS_PROVIDER_ADDRESS;
@@ -30,7 +29,6 @@ abstract contract AddressBook {
         address vrfCoordinatorAddr;
         bytes32 keyHash;
         uint256 fee;
-        address myLinkFaucetAddr;
         // Aave
         address wethGatewayAddr;
         address lendingPoolAddressesProviderAddr;
@@ -39,7 +37,7 @@ abstract contract AddressBook {
         address swapRouterAddr;
         // tokens
         address daiAddr;
-        address wethAddr;
+        address wethAddr; // TODO
 
         uint256 id = block.chainid;
 
@@ -51,7 +49,6 @@ abstract contract AddressBook {
             vrfCoordinatorAddr = 0xf0d54349aDdcf704F77AE15b96510dEA15cb7952;
             keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
             fee = 2e18;
-            myLinkFaucetAddr = 0x98C63b7B319dFBDF3d811530F2ab9DfE4983Af9D;
             // Aave
             wethGatewayAddr = 0xcc9a0B7c43DC2a5F023Bb9b738E45B0Ef6B06E04;
             lendingPoolAddressesProviderAddr = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
@@ -71,7 +68,6 @@ abstract contract AddressBook {
         VRF_COORDINATOR_ADDRESS = vrfCoordinatorAddr;
         KEY_HASH = keyHash;
         FEE = fee;
-        MY_LINK_FAUCET_ADDRESS = myLinkFaucetAddr;
         // Aave
         WETH_GATEWAY_ADDRESS = wethGatewayAddr;
         LENDING_POOL_ADDRESS_PROVIDER_ADDRESS = lendingPoolAddressesProviderAddr;
