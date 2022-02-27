@@ -26,6 +26,8 @@ contract DefiantAave {
 
     ISwapRouter internal swapRouter;
 
+    mapping(address => uint256) public addressToCustodiedFunds;
+
     constructor(
         address wethGatewayAddr,
         address lendingPoolAddressProviderAddr,
@@ -113,10 +115,19 @@ contract DefiantAave {
 
         if (continueEarning) {
             lendingPool.deposit(wethAddress, _ethAmount, msg.sender, 0);
+        } else {
+            unchecked {
+                addressToCustodiedFunds[msg.sender] += _ethAmount;
+            }
         }
     }
 
-    function closeShort(address assetAddr) public {}
+    /*function closeShort(
+        uint256 ethAmount,
+        address assetAddr,
+        uint256 interestRateMode,
+        uint24 uniswapPoolFee
+    ) {}*/
 
     /// @dev The calling address must approve this contract to spend
     /// @dev at least `_amountIn` worth of its `_tokenIn` for this function to succeed

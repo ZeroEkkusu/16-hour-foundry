@@ -92,26 +92,30 @@ contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
         // You can customize whether or not to deposit WETH in the lending pool after opening a short
         bool continueEarning = true;
         IDebtToken dAsset = interestRateMode == 1 ? sdAsset : vdAsset;
-        uint256 amountInWeth = wethAmount / 10;
-        emit log_uint(amountInWeth);
+        uint256 amountInWethToShort = wethAmount / 10;
         uint256 prevBalance = weth.balanceOf(address(this));
 
         defiantAave.openShort(
-            amountInWeth,
+            amountInWethToShort,
             address(asset),
             interestRateMode,
             uniswapPoolFee,
             continueEarning
         );
         (uint256 amount, ) = defiantAave.calculateAmount(
-            amountInWeth,
+            amountInWethToShort,
             address(asset)
         );
         assertEq(dAsset.balanceOf(address(this)), amount);
         if (continueEarning) {
             assertGe(
                 weth.balanceOf(address(this)),
-                (prevBalance * 0.99e18) / 1e18
+                (prevBalance * 0.989e18) / 1e18
+            );
+        } else {
+            assertGe(
+                defiantAave.addressToCustodiedFunds(address(this)),
+                (amountInWethToShort * 0.989e18) / 1e18
             );
         }
     }
