@@ -13,7 +13,7 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
 /// @notice Short assets with ETH and earn passive income
-contract DefiantAave {
+contract Defiant {
     error InsufficientFunds(uint256 amount, uint256 maxAmount);
 
     IWETHGateway internal wethGateway;

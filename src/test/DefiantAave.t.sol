@@ -5,7 +5,7 @@ pragma solidity ^0.8.4;
 import {ILendingPoolAddressesProvider} from "src/interfaces/ILendingPoolAddressesProvider.sol";
 import {IProtocolDataProvider} from "src/interfaces/IProtocolDataProvider.sol";
 import {IDebtToken} from "src/interfaces/IDebtToken.sol";
-import {DefiantAave} from "src/DefiantAave.sol";
+import {Defiant} from "src/Defiant.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {DSTest} from "ds-test/test.sol";
@@ -13,7 +13,7 @@ import {stdCheats} from "forge-std/stdlib.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {AddressBook} from "src/test/utils/AddressBook.sol";
 
-contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
+contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
     ERC20 weth;
     ERC20 aWeth;
     ERC20 asset;
@@ -22,7 +22,7 @@ contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
     ILendingPoolAddressesProvider lendingPoolAddressProvider;
     IProtocolDataProvider protocolDataProvider;
 
-    DefiantAave defiantAave;
+    Defiant defiant;
     uint256 wethAmount;
 
     Vm vm = Vm(HEVM_ADDRESS);
@@ -50,41 +50,41 @@ contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
         // You can customize the minimum amount of WETH to transfer to this contract
         wethAmount = 1 ether;
 
-        defiantAave = new DefiantAave(
+        defiant = new Defiant(
             WETH_GATEWAY_ADDRESS,
             LENDING_POOL_ADDRESS_PROVIDER_ADDRESS,
             PROTOCOL_DATA_PROVIDER_ADDRESS,
             SWAP_ROUTER_ADDRESS
         );
         tip(WETH_ADDRESS, address(this), wethAmount);
-        weth.approve(address(defiantAave), 2**256 - 1);
-        sdAsset.approveDelegation(address(defiantAave), 2**256 - 1);
-        vdAsset.approveDelegation(address(defiantAave), 2**256 - 1);
+        weth.approve(address(defiant), 2**256 - 1);
+        sdAsset.approveDelegation(address(defiant), 2**256 - 1);
+        vdAsset.approveDelegation(address(defiant), 2**256 - 1);
     }
 
     function testStartEarning() public {
-        defiantAave.startEarning{value: wethAmount}();
+        defiant.startEarning{value: wethAmount}();
         assertEq(aWeth.balanceOf(address(this)), wethAmount);
     }
 
     function testStartEarningWrapped() public {
-        defiantAave.startEarningWrapped(wethAmount);
+        defiant.startEarningWrapped(wethAmount);
         assertEq(aWeth.balanceOf(address(this)), wethAmount);
     }
 
     function testCannotStartEarningWrappedInsufficientFunds() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                DefiantAave.InsufficientFunds.selector,
+                Defiant.InsufficientFunds.selector,
                 wethAmount * 2,
                 wethAmount
             )
         );
-        defiantAave.startEarningWrapped(wethAmount * 2);
+        defiant.startEarningWrapped(wethAmount * 2);
     }
 
     function testOpenShort() public {
-        defiantAave.startEarningWrapped(wethAmount);
+        defiant.startEarningWrapped(wethAmount);
         // You can customize the interest rate mode to use (stable: 1, variable: 2)
         uint256 interestRateMode = 1;
         // You can customize the uniswap pool fee
@@ -95,14 +95,14 @@ contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
         uint256 amountInWethToShort = wethAmount / 10;
         uint256 prevBalance = weth.balanceOf(address(this));
 
-        defiantAave.openShort(
+        defiant.openShort(
             amountInWethToShort,
             address(asset),
             interestRateMode,
             uniswapPoolFee,
             continueEarning
         );
-        (uint256 amount, ) = defiantAave.calculateAmount(
+        (uint256 amount, ) = defiant.calculateAmount(
             amountInWethToShort,
             address(asset)
         );
@@ -114,7 +114,7 @@ contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
             );
         } else {
             assertGe(
-                defiantAave.addressToCustodiedFunds(address(this)),
+                defiant.addressToCustodiedFunds(address(this)),
                 (amountInWethToShort * 0.989e18) / 1e18
             );
         }
@@ -123,11 +123,11 @@ contract DefiantAaveUnitTest is DSTest, stdCheats, AddressBook {
     function testCannotOpenShortInsufficientFunds() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                DefiantAave.InsufficientFunds.selector,
+                Defiant.InsufficientFunds.selector,
                 wethAmount,
                 0
             )
         );
-        defiantAave.openShort(wethAmount, address(asset), 1, 3000, true);
+        defiant.openShort(wethAmount, address(asset), 1, 3000, true);
     }
 }

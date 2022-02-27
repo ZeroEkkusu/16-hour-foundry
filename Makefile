@@ -27,7 +27,7 @@ test-tokenico:
 	make -s unit-test-tokenico
 	make -s integration-test-tokenico
 
-# Test DefiantAave
+# Test Defiant
 test-defiantaave:
 	make -s unit-test-defiantaave
 	make -s integration-test-defiantaave
@@ -44,9 +44,9 @@ integration-test-lottery :; make -s all-integration-tests c=Lottery
 unit-test-tokenico :; make -s all-unit-tests c=TokenIco
 integration-test-tokenico :; make -s all-integration-tests c=TokenIco
 
-# Run unit or integration tests for DefiantAave
-unit-test-defiantaave :; forge test --match-contract DefiantAaveUnitTest --fork-url $(ETH_RPC_URL)
-integration-test-defiantaave :; make -s all-integration-tests c=DefiantAave
+# Run unit or integration tests for Defiant
+unit-test-defiant :; forge test --match-contract DefiantUnitTest --fork-url $(ETH_RPC_URL)
+integration-test-defiant :; make -s all-integration-tests c=Defiant
 
 
 # Check gas usage quickly
