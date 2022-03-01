@@ -84,17 +84,32 @@ contract Defiant {
 
     /// @dev The calling address must approve this contract to borrow
     /// @dev at least `ethAmount / asset price in ETH` worth of the asset
-    /// @dev to be able to borrow it
+    /// @dev to be able to open a short
     function openShort(
         uint256 ethAmount,
         address assetAddr,
         uint256 interestRateMode,
         uint24 uniswapPoolFee,
-        bool continueEarning
+        bool custodyFunds
     ) public {
-        address wethAddress = address(weth);
+        address wethAddr = address(weth);
         (, , uint256 availableBorrowsETH, , , ) = lendingPool
             .getUserAccountData(msg.sender);
+        (
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            bool wethUsageAsCollateralEnabled
+        ) = protocolDataProvider.getUserReserveData(wethAddr, msg.sender);
+        // Defiant uses only aWETH!
+        if (!wethUsageAsCollateralEnabled) {
+            revert InsufficientFunds(ethAmount, 0);
+        }
         if (ethAmount > availableBorrowsETH)
             revert InsufficientFunds(ethAmount, availableBorrowsETH);
 
@@ -108,26 +123,91 @@ contract Defiant {
         uint256 _ethAmount = swapExactInputSingle(
             assetAddr,
             amount,
-            wethAddress,
+            wethAddr,
             (amount * assetPrice * 0.99e18) / 1e36,
             uniswapPoolFee
         );
 
-        if (continueEarning) {
-            lendingPool.deposit(wethAddress, _ethAmount, msg.sender, 0);
-        } else {
+        if (custodyFunds) {
             unchecked {
                 addressToCustodiedFunds[msg.sender] += _ethAmount;
             }
+        } else {
+            lendingPool.deposit(wethAddr, _ethAmount, msg.sender, 0);
         }
     }
 
-    /*function closeShort(
+    /// @notice Send `ethAmount` slightly higher than the current shorted amount to close entirely
+    /// @dev The calling address must approve this contract to spend
+    /// @dev at least `ethAmount` worth of its aWETH to be able to close a short
+    function closeShort(
         uint256 ethAmount,
         address assetAddr,
         uint256 interestRateMode,
         uint24 uniswapPoolFee
-    ) {}*/
+    ) public {
+        uint256 custodiedFunds = addressToCustodiedFunds[msg.sender];
+
+        address wethAddr = address(weth);
+        (address aWethAddr, , ) = protocolDataProvider
+            .getReserveTokensAddresses(wethAddr); // this vs sload
+        uint256 aWethBalance = ERC20(aWethAddr).balanceOf(msg.sender);
+
+        (
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            bool wethUsageAsCollateralEnabled
+        ) = protocolDataProvider.getUserReserveData(wethAddr, msg.sender);
+        // Defiant uses only aWETH!
+        if (!wethUsageAsCollateralEnabled) {
+            revert InsufficientFunds(ethAmount, 0);
+        }
+        // `ethAmount` cannot be greater than how much `msg.sender`'s aWeth balance!
+        if (ethAmount > custodiedFunds + aWethBalance) {
+            revert InsufficientFunds(ethAmount, custodiedFunds + aWethBalance);
+        }
+
+        // TODO Flashloan case
+
+        uint256 aWethAmount = ethAmount - custodiedFunds;
+        SafeTransferLib.safeTransferFrom(
+            ERC20(aWethAddr),
+            msg.sender,
+            address(this),
+            aWethAmount
+        );
+
+        lendingPool.withdraw(wethAddr, aWethAmount, address(this));
+
+        (uint256 assetAmount, ) = calculateAmount(ethAmount, assetAddr);
+
+        uint256 _assetAmount = swapExactInputSingle(
+            wethAddr,
+            ethAmount,
+            assetAddr,
+            (assetAmount * 0.99e18) / 1e36,
+            uniswapPoolFee
+        );
+
+        SafeTransferLib.safeApprove(
+            ERC20(assetAddr),
+            address(lendingPool),
+            _assetAmount
+        );
+
+        lendingPool.repay(
+            assetAddr,
+            _assetAmount,
+            interestRateMode,
+            msg.sender
+        );
+    }
 
     /// @dev The calling address must approve this contract to spend
     /// @dev at least `_amountIn` worth of its `_tokenIn` for this function to succeed
@@ -162,5 +242,6 @@ contract Defiant {
     /*function update(address wethGatewayAddr, address swapRouterAddr) public {
         wethGateway = IWETHGateway(wethGatewayAddr);
         swapRouter = ISwapRouter(swapRouterAddr);
+        TODO Must include updated allowances
     }*/
 }

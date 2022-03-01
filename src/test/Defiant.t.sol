@@ -58,6 +58,7 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
         );
         tip(WETH_ADDRESS, address(this), wethAmount);
         weth.approve(address(defiant), 2**256 - 1);
+        aWeth.approve(address(defiant), 2**256 - 1);
         sdAsset.approveDelegation(address(defiant), 2**256 - 1);
         vdAsset.approveDelegation(address(defiant), 2**256 - 1);
     }
@@ -90,7 +91,7 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
         // You can customize the uniswap pool fee
         uint24 uniswapPoolFee = 3000;
         // You can customize whether or not to deposit WETH in the lending pool after opening a short
-        bool continueEarning = true;
+        bool custodyFunds = false;
         IDebtToken dAsset = interestRateMode == 1 ? sdAsset : vdAsset;
         uint256 amountInWethToShort = wethAmount / 10;
         uint256 prevBalance = weth.balanceOf(address(this));
@@ -100,22 +101,22 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
             address(asset),
             interestRateMode,
             uniswapPoolFee,
-            continueEarning
+            custodyFunds
         );
         (uint256 amount, ) = defiant.calculateAmount(
             amountInWethToShort,
             address(asset)
         );
         assertEq(dAsset.balanceOf(address(this)), amount);
-        if (continueEarning) {
-            assertGe(
-                weth.balanceOf(address(this)),
-                (prevBalance * 0.989e18) / 1e18
-            );
-        } else {
+        if (custodyFunds) {
             assertGe(
                 defiant.addressToCustodiedFunds(address(this)),
                 (amountInWethToShort * 0.989e18) / 1e18
+            );
+        } else {
+            assertGe(
+                weth.balanceOf(address(this)),
+                (prevBalance * 0.989e18) / 1e18
             );
         }
     }
@@ -129,5 +130,35 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
             )
         );
         defiant.openShort(wethAmount, address(asset), 1, 3000, true);
+    }
+
+    function testCloseShort() public {
+        defiant.startEarningWrapped(wethAmount);
+        // You can customize the interest rate mode to use (stable: 1, variable: 2)
+        uint256 interestRateMode = 1;
+        // You can customize the uniswap pool fee
+        uint24 uniswapPoolFee = 3000;
+        // You can customize whether or not to deposit WETH in the lending pool after opening a short
+        bool custodyFunds = false;
+        IDebtToken dAsset = interestRateMode == 1 ? sdAsset : vdAsset;
+        uint256 amountInWethToShort = wethAmount / 10;
+        uint256 prevBalance = weth.balanceOf(address(this));
+        defiant.openShort(
+            amountInWethToShort,
+            address(asset),
+            interestRateMode,
+            uniswapPoolFee,
+            custodyFunds
+        );
+        (, uint256 assetPrice) = defiant.calculateAmount(0, address(asset));
+        uint256 dAmount = dAsset.balanceOf(address(this));
+
+        defiant.closeShort(
+            ((dAmount * assetPrice) * 1.01e18) / 1e36,
+            address(asset),
+            interestRateMode,
+            uniswapPoolFee
+        );
+        assertEq(dAsset.balanceOf(address(this)), 0);
     }
 }
