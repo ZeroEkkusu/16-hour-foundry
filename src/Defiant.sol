@@ -27,9 +27,6 @@ contract Defiant {
 
     ISwapRouter internal swapRouter;
 
-    /// @notice Can be used to close shorts
-    mapping(address => uint256) public addressToCustodiedFunds;
-
     /// @dev Passing everything manually would be cheaper, but for the sake of learning
     /// @dev we'll let our constructor fetch some addresses automatically
     constructor(
@@ -100,8 +97,7 @@ contract Defiant {
         uint256 ethAmount,
         address assetAddr,
         uint256 interestRateMode,
-        uint24 uniswapPoolFee,
-        bool custodyFunds
+        uint24 uniswapPoolFee
     ) public {
         address wethAddr = address(weth);
         (, , uint256 availableBorrowsETH, , , ) = lendingPool
@@ -144,17 +140,11 @@ contract Defiant {
             assetAddr,
             amount,
             wethAddr,
-            (amount * assetPrice * 0.99e18) / 1e36,
+            (amount * assetPrice * 9900) / 1e22,
             uniswapPoolFee
         );
 
-        if (custodyFunds) {
-            unchecked {
-                addressToCustodiedFunds[msg.sender] += _ethAmount;
-            }
-        } else {
-            lendingPool.deposit(wethAddr, _ethAmount, msg.sender, 0);
-        }
+        lendingPool.deposit(wethAddr, _ethAmount, msg.sender, 0);
     }
 
     /// @notice Send `ethAmount` slightly higher than the current shorted amount to close entirely
@@ -166,8 +156,6 @@ contract Defiant {
         uint256 interestRateMode,
         uint24 uniswapPoolFee
     ) public {
-        uint256 custodiedFunds = addressToCustodiedFunds[msg.sender];
-
         address wethAddr = address(weth);
         ERC20 _aWeth = aWeth;
         uint256 aWethBalance = _aWeth.balanceOf(msg.sender);
@@ -189,21 +177,20 @@ contract Defiant {
             revert InsufficientFunds(ethAmount, 0);
         }
         // `ethAmount` cannot be greater than `msg.sender`'s aWeth balance!
-        if (ethAmount > custodiedFunds + aWethBalance) {
-            revert InsufficientFunds(ethAmount, custodiedFunds + aWethBalance);
+        if (ethAmount > aWethBalance) {
+            revert InsufficientFunds(ethAmount, aWethBalance);
         }
 
         // TODO Flashloan case
 
-        uint256 aWethAmount = ethAmount - custodiedFunds;
         SafeTransferLib.safeTransferFrom(
             _aWeth,
             msg.sender,
             address(this),
-            aWethAmount
+            ethAmount
         );
 
-        lendingPool.withdraw(wethAddr, aWethAmount, address(this));
+        lendingPool.withdraw(wethAddr, ethAmount, address(this));
 
         (uint256 assetAmount, ) = calculateAmount(ethAmount, assetAddr);
 
@@ -211,7 +198,7 @@ contract Defiant {
             wethAddr,
             ethAmount,
             assetAddr,
-            (assetAmount * 0.99e18) / 1e36,
+            (assetAmount * 9900) / 1e22,
             uniswapPoolFee
         );
 
@@ -226,6 +213,13 @@ contract Defiant {
             _assetAmount,
             interestRateMode,
             msg.sender
+        );
+
+        lendingPool.deposit(
+            assetAddr,
+            ERC20(assetAddr).balanceOf(address(this)),
+            msg.sender,
+            0
         );
     }
 
