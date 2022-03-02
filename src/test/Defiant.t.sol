@@ -144,7 +144,7 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
         assertEq(dAsset.balanceOf(address(this)), 0);
     }
 
-    /*function testCannotCloseShortInsufficientFunds() public {
+    function testCannotCloseShortInsufficientFunds() public {
         vm.expectRevert(
             abi.encodeWithSelector(
                 Defiant.InsufficientFunds.selector,
@@ -152,6 +152,6 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
                 0
             )
         );
-        defiant.openShort(wethAmount, address(asset), 1, 3000, true);
-    }*/
+        defiant.closeShort(wethAmount, address(asset), 1, 3000);
+    }
 }
