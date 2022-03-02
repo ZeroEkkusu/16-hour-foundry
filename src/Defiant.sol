@@ -17,32 +17,43 @@ contract Defiant {
     error InsufficientFunds(uint256 amount, uint256 maxAmount);
 
     IWETHGateway internal wethGateway;
-    ILendingPoolAddressesProvider internal lendingPoolAddressProvider;
+    ILendingPoolAddressesProvider internal lendingPoolAddressesProvider;
     ILendingPool internal lendingPool;
     IProtocolDataProvider internal protocolDataProvider;
     IPriceOracle internal priceOracle;
 
     ERC20 weth;
+    ERC20 aWeth;
 
     ISwapRouter internal swapRouter;
 
+    /// @notice Can be used to close shorts
     mapping(address => uint256) public addressToCustodiedFunds;
 
+    /// @dev Passing everything manually would be cheaper, but for the sake of learning
+    /// @dev we'll let our constructor fetch some addresses automatically
     constructor(
         address wethGatewayAddr,
-        address lendingPoolAddressProviderAddr,
+        address lendingPoolAddressesProviderAddr,
         address protocolDataProviderAddr,
         address swapRouterAddr
     ) payable {
         wethGateway = IWETHGateway(wethGatewayAddr);
-        lendingPoolAddressProvider = ILendingPoolAddressesProvider(
-            lendingPoolAddressProviderAddr
+        lendingPoolAddressesProvider = ILendingPoolAddressesProvider(
+            lendingPoolAddressesProviderAddr
         );
-        lendingPool = ILendingPool(lendingPoolAddressProvider.getLendingPool());
+        lendingPool = ILendingPool(
+            lendingPoolAddressesProvider.getLendingPool()
+        );
         protocolDataProvider = IProtocolDataProvider(protocolDataProviderAddr);
-        priceOracle = IPriceOracle(lendingPoolAddressProvider.getPriceOracle());
+        priceOracle = IPriceOracle(
+            lendingPoolAddressesProvider.getPriceOracle()
+        );
 
         weth = ERC20(wethGateway.getWETHAddress());
+        (address aWethAddr, , ) = protocolDataProvider
+            .getReserveTokensAddresses(address(weth));
+        aWeth = ERC20(aWethAddr);
 
         SafeTransferLib.safeApprove(weth, address(lendingPool), 2**256 - 1);
 
@@ -106,12 +117,21 @@ contract Defiant {
             ,
             bool wethUsageAsCollateralEnabled
         ) = protocolDataProvider.getUserReserveData(wethAddr, msg.sender);
+
         // Defiant uses only aWETH!
         if (!wethUsageAsCollateralEnabled) {
             revert InsufficientFunds(ethAmount, 0);
         }
-        if (ethAmount > availableBorrowsETH)
-            revert InsufficientFunds(ethAmount, availableBorrowsETH);
+
+        uint256 aWethBalance = aWeth.balanceOf(msg.sender);
+        if (ethAmount > availableBorrowsETH) {
+            revert InsufficientFunds(
+                ethAmount,
+                availableBorrowsETH >= aWethBalance
+                    ? aWethBalance
+                    : availableBorrowsETH
+            );
+        }
 
         (uint256 amount, uint256 assetPrice) = calculateAmount(
             ethAmount,
@@ -149,9 +169,8 @@ contract Defiant {
         uint256 custodiedFunds = addressToCustodiedFunds[msg.sender];
 
         address wethAddr = address(weth);
-        (address aWethAddr, , ) = protocolDataProvider
-            .getReserveTokensAddresses(wethAddr); // this vs sload
-        uint256 aWethBalance = ERC20(aWethAddr).balanceOf(msg.sender);
+        ERC20 _aWeth = aWeth;
+        uint256 aWethBalance = _aWeth.balanceOf(msg.sender);
 
         (
             ,
@@ -164,11 +183,12 @@ contract Defiant {
             ,
             bool wethUsageAsCollateralEnabled
         ) = protocolDataProvider.getUserReserveData(wethAddr, msg.sender);
+
         // Defiant uses only aWETH!
         if (!wethUsageAsCollateralEnabled) {
             revert InsufficientFunds(ethAmount, 0);
         }
-        // `ethAmount` cannot be greater than how much `msg.sender`'s aWeth balance!
+        // `ethAmount` cannot be greater than `msg.sender`'s aWeth balance!
         if (ethAmount > custodiedFunds + aWethBalance) {
             revert InsufficientFunds(ethAmount, custodiedFunds + aWethBalance);
         }
@@ -177,7 +197,7 @@ contract Defiant {
 
         uint256 aWethAmount = ethAmount - custodiedFunds;
         SafeTransferLib.safeTransferFrom(
-            ERC20(aWethAddr),
+            _aWeth,
             msg.sender,
             address(this),
             aWethAmount

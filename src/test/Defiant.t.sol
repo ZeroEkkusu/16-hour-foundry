@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.4;
 
-import {ILendingPoolAddressesProvider} from "src/interfaces/ILendingPoolAddressesProvider.sol";
 import {IProtocolDataProvider} from "src/interfaces/IProtocolDataProvider.sol";
 import {IDebtToken} from "src/interfaces/IDebtToken.sol";
 import {Defiant} from "src/Defiant.sol";
@@ -19,7 +18,6 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
     ERC20 asset;
     IDebtToken sdAsset;
     IDebtToken vdAsset;
-    ILendingPoolAddressesProvider lendingPoolAddressProvider;
     IProtocolDataProvider protocolDataProvider;
 
     Defiant defiant;
@@ -31,9 +29,6 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
         weth = ERC20(WETH_ADDRESS);
         // You can customize which asset to short
         asset = ERC20(DAI_ADDRESS);
-        lendingPoolAddressProvider = ILendingPoolAddressesProvider(
-            LENDING_POOL_ADDRESS_PROVIDER_ADDRESS
-        );
         protocolDataProvider = IProtocolDataProvider(
             PROTOCOL_DATA_PROVIDER_ADDRESS
         );
@@ -111,22 +106,23 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
         if (custodyFunds) {
             assertGe(
                 defiant.addressToCustodiedFunds(address(this)),
-                (amountInWethToShort * 0.989e18) / 1e18
+                (amountInWethToShort * 9890) / 1e4
             );
         } else {
-            assertGe(
-                weth.balanceOf(address(this)),
-                (prevBalance * 0.989e18) / 1e18
-            );
+            assertGe(weth.balanceOf(address(this)), (prevBalance * 9890) / 1e4);
         }
     }
 
     function testCannotOpenShortInsufficientFunds() public {
+        defiant.startEarningWrapped(wethAmount - 1);
+        (, uint256 ltv, , , , , , , , ) = protocolDataProvider
+            .getReserveConfigurationData(address(weth));
+
         vm.expectRevert(
             abi.encodeWithSelector(
                 Defiant.InsufficientFunds.selector,
                 wethAmount,
-                0
+                ((wethAmount - 1) * ltv) / 1e4
             )
         );
         defiant.openShort(wethAmount, address(asset), 1, 3000, true);
@@ -142,7 +138,6 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
         bool custodyFunds = false;
         IDebtToken dAsset = interestRateMode == 1 ? sdAsset : vdAsset;
         uint256 amountInWethToShort = wethAmount / 10;
-        uint256 prevBalance = weth.balanceOf(address(this));
         defiant.openShort(
             amountInWethToShort,
             address(asset),
@@ -154,11 +149,22 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
         uint256 dAmount = dAsset.balanceOf(address(this));
 
         defiant.closeShort(
-            ((dAmount * assetPrice) * 1.01e18) / 1e36,
+            ((dAmount * assetPrice) * 1010) / 1e21,
             address(asset),
             interestRateMode,
             uniswapPoolFee
         );
         assertEq(dAsset.balanceOf(address(this)), 0);
     }
+
+    /*function testCannotCloseShortInsufficientFunds() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Defiant.InsufficientFunds.selector,
+                wethAmount,
+                0
+            )
+        );
+        defiant.openShort(wethAmount, address(asset), 1, 3000, true);
+    }*/
 }
