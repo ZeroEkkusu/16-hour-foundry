@@ -320,15 +320,16 @@ contract LotteryIntegrationTest is
         );
 
         assertEq(lottery.entryFeeInUsd(), newEntryFeeInUsd);
-        address loadedEthUsdPriceFeedAddr = address(
-            uint160(uint256(vm.load(address(lottery), bytes32(uint256(5)))))
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(lottery), bytes32(uint256(5)))))
+            ),
+            newEthUsdPriceFeedAddr
         );
-        assertEq(loadedEthUsdPriceFeedAddr, newEthUsdPriceFeedAddr);
-        bytes32 loadedKeyHash = vm.load(address(lottery), bytes32(uint256(6)));
-        assertEq(loadedKeyHash, newKeyHash);
-        uint256 loadedFee = uint256(
-            vm.load(address(lottery), bytes32(uint256(7)))
+        assertEq(vm.load(address(lottery), bytes32(uint256(6))), newKeyHash);
+        assertEq(
+            uint256(vm.load(address(lottery), bytes32(uint256(7)))),
+            newFee
         );
-        assertEq(loadedFee, newFee);
     }
 }

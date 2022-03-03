@@ -29,8 +29,8 @@ test-tokenico:
 
 # Test Defiant
 test-defiantaave:
-	make -s unit-test-defiantaave
-	make -s integration-test-defiantaave
+	make -s unit-test-defiant
+	make -s integration-test-defiant
 
 # Run unit or integration tests for FundMe
 unit-test-fundme :; make -s all-unit-tests c=FundMe

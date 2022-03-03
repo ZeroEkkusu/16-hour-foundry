@@ -98,10 +98,12 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
         emit Updated(newMinimumAmountInUsd, newEthUsdPriceFeedAddr);
         fundMe.update(newMinimumAmountInUsd, newEthUsdPriceFeedAddr);
         assertEq(fundMe.minimumAmountInUsd(), newMinimumAmountInUsd);
-        address loadedEthUsdPriceFeedAddr = address(
-            uint160(uint256(vm.load(address(fundMe), bytes32(uint256(5)))))
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(fundMe), bytes32(uint256(5)))))
+            ),
+            newEthUsdPriceFeedAddr
         );
-        assertEq(loadedEthUsdPriceFeedAddr, newEthUsdPriceFeedAddr);
     }
 
     function testCannotUpdateUnauthorized() public {
@@ -187,9 +189,11 @@ contract FundMeIntegrationTest is
         fundMe.update(newMinimumAmountInUsd, newEthUsdPriceFeedAddr);
 
         assertEq(fundMe.minimumAmountInUsd(), newMinimumAmountInUsd);
-        address loadedEthUsdPriceFeedAddr = address(
-            uint160(uint256(vm.load(address(fundMe), bytes32(uint256(5)))))
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(fundMe), bytes32(uint256(5)))))
+            ),
+            newEthUsdPriceFeedAddr
         );
-        assertEq(loadedEthUsdPriceFeedAddr, newEthUsdPriceFeedAddr);
     }
 }
