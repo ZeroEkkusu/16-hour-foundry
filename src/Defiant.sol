@@ -11,10 +11,22 @@ import {ISwapRouter} from "src/interfaces/ISwapRouter.sol";
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import {Auth, Authority} from "solmate/auth/Auth.sol";
 
 /// @notice Short assets with ETH and earn passive income
-contract Defiant {
+contract Defiant is Auth {
     error InsufficientFunds(uint256 amount, uint256 maxAmount);
+    event Updated(
+        address _wethGatewayAddr,
+        address _lendingPoolAddressesProviderAddr,
+        address _lendingPoolAddr,
+        address _protocolDataProviderAddr,
+        address _priceOracleAddr,
+        address _wethAddr,
+        address _aWethAddr,
+        uint256 _lendingPoolWethAllowance,
+        address _swapRouterAddr
+    );
 
     IWETHGateway internal wethGateway;
     ILendingPoolAddressesProvider internal lendingPoolAddressesProvider;
@@ -22,19 +34,20 @@ contract Defiant {
     IProtocolDataProvider internal protocolDataProvider;
     IPriceOracle internal priceOracle;
 
-    ERC20 weth;
-    ERC20 aWeth;
+    ERC20 internal weth;
+    ERC20 internal aWeth;
 
     ISwapRouter internal swapRouter;
 
-    /// @dev Passing everything manually would be cheaper, but for the sake of learning
-    /// @dev we'll let our constructor fetch some addresses automatically
+    /// @dev Do not send money to the constructor
+    /// @dev Optimized for lower deployment cost
     constructor(
         address wethGatewayAddr,
         address lendingPoolAddressesProviderAddr,
         address protocolDataProviderAddr,
-        address swapRouterAddr
-    ) payable {
+        address swapRouterAddr,
+        address _authorityAddr
+    ) payable Auth(msg.sender, Authority(_authorityAddr)) {
         wethGateway = IWETHGateway(wethGatewayAddr);
         lendingPoolAddressesProvider = ILendingPoolAddressesProvider(
             lendingPoolAddressesProviderAddr
@@ -114,7 +127,7 @@ contract Defiant {
             bool wethUsageAsCollateralEnabled
         ) = protocolDataProvider.getUserReserveData(wethAddr, msg.sender);
 
-        // Defiant uses only aWETH!
+        // Defiant uses only aWETH for borrowing!
         if (!wethUsageAsCollateralEnabled) {
             revert InsufficientFunds(ethAmount, 0);
         }
@@ -147,7 +160,6 @@ contract Defiant {
         lendingPool.deposit(wethAddr, _ethAmount, msg.sender, 0);
     }
 
-    /// @notice Send `ethAmount` slightly higher than the current shorted amount to close entirely
     /// @dev The calling address must approve this contract to spend
     /// @dev at least `ethAmount` worth of its aWETH to be able to close a short
     function closeShort(
@@ -172,16 +184,24 @@ contract Defiant {
             bool wethUsageAsCollateralEnabled
         ) = protocolDataProvider.getUserReserveData(wethAddr, msg.sender);
 
-        // Defiant uses only aWETH!
-        if (!wethUsageAsCollateralEnabled) {
-            revert InsufficientFunds(ethAmount, 0);
+        (, , uint256 availableBorrowsETH, , , ) = lendingPool
+            .getUserAccountData(msg.sender);
+        // `ethAmount` cannot be greater than how much `msg.sender`'s aWeth can be withdrawn!
+        if (
+            ethAmount > aWethBalance ||
+            (wethUsageAsCollateralEnabled && ethAmount > availableBorrowsETH)
+        ) {
+            revert InsufficientFunds(
+                ethAmount,
+                !wethUsageAsCollateralEnabled
+                    ? aWethBalance
+                    : (
+                        availableBorrowsETH >= aWethBalance
+                            ? aWethBalance
+                            : availableBorrowsETH
+                    )
+            );
         }
-        // `ethAmount` cannot be greater than `msg.sender`'s aWeth balance!
-        if (ethAmount > aWethBalance) {
-            revert InsufficientFunds(ethAmount, aWethBalance);
-        }
-
-        // TODO Flashloan case
 
         SafeTransferLib.safeTransferFrom(
             _aWeth,
@@ -253,9 +273,46 @@ contract Defiant {
         amountOut = swapRouter.exactInputSingle(params);
     }
 
-    /*function update(address wethGatewayAddr, address swapRouterAddr) public {
-        wethGateway = IWETHGateway(wethGatewayAddr);
-        swapRouter = ISwapRouter(swapRouterAddr);
-        TODO Must include updated allowances
-    }*/
+    function update(
+        address _wethGatewayAddr,
+        address _lendingPoolAddressesProviderAddr,
+        address _lendingPoolAddr,
+        address _protocolDataProviderAddr,
+        address _priceOracleAddr,
+        address _wethAddr,
+        address _aWethAddr,
+        uint256 _lendingPoolWethAllowance,
+        address _swapRouterAddr
+    ) public requiresAuth {
+        wethGateway = IWETHGateway(_wethGatewayAddr);
+        lendingPoolAddressesProvider = ILendingPoolAddressesProvider(
+            _lendingPoolAddressesProviderAddr
+        );
+        lendingPool = ILendingPool(_lendingPoolAddr);
+        protocolDataProvider = IProtocolDataProvider(_protocolDataProviderAddr);
+        priceOracle = IPriceOracle(_priceOracleAddr);
+
+        weth = ERC20(_wethAddr);
+        aWeth = ERC20(_aWethAddr);
+
+        SafeTransferLib.safeApprove(
+            weth,
+            _lendingPoolAddr,
+            _lendingPoolWethAllowance
+        );
+
+        swapRouter = ISwapRouter(_swapRouterAddr);
+
+        emit Updated(
+            _wethGatewayAddr,
+            _lendingPoolAddressesProviderAddr,
+            _lendingPoolAddr,
+            _protocolDataProviderAddr,
+            _priceOracleAddr,
+            _wethAddr,
+            _aWethAddr,
+            _lendingPoolWethAllowance,
+            _swapRouterAddr
+        );
+    }
 }

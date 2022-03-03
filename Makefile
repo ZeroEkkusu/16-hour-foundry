@@ -49,10 +49,6 @@ unit-test-defiant :; forge test --match-contract DefiantUnitTest --fork-url $(ET
 integration-test-defiant :; make -s all-integration-tests c=Defiant
 
 
-# Check gas usage quickly
-gas :; forge test --match-test test$(t) --force
-
-
 ####################
 # NOT FOR ENDUSERS #
 ####################

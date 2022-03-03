@@ -15,6 +15,7 @@ abstract contract AddressBook {
     // AAVE
     address immutable WETH_GATEWAY_ADDRESS;
     address immutable LENDING_POOL_ADDRESS_PROVIDER_ADDRESS;
+    address immutable LENDING_POOL_ADDRESS;
     address immutable PROTOCOL_DATA_PROVIDER_ADDRESS;
     // UNISWAP
     address immutable SWAP_ROUTER_ADDRESS;
@@ -32,6 +33,7 @@ abstract contract AddressBook {
         // Aave
         address wethGatewayAddr;
         address lendingPoolAddressesProviderAddr;
+        address lendingPoolAddr;
         address protocolDataProviderAddr;
         // Uniswap
         address swapRouterAddr;
@@ -52,6 +54,7 @@ abstract contract AddressBook {
             // Aave
             wethGatewayAddr = 0xcc9a0B7c43DC2a5F023Bb9b738E45B0Ef6B06E04;
             lendingPoolAddressesProviderAddr = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
+            lendingPoolAddr = 0xE0fBa4Fc209b4948668006B2bE61711b7f465bAe;
             protocolDataProviderAddr = 0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d;
             // Uniswap
             swapRouterAddr = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
@@ -71,6 +74,7 @@ abstract contract AddressBook {
         // Aave
         WETH_GATEWAY_ADDRESS = wethGatewayAddr;
         LENDING_POOL_ADDRESS_PROVIDER_ADDRESS = lendingPoolAddressesProviderAddr;
+        LENDING_POOL_ADDRESS = lendingPoolAddr;
         PROTOCOL_DATA_PROVIDER_ADDRESS = protocolDataProviderAddr;
         // Uniswap
         SWAP_ROUTER_ADDRESS = swapRouterAddr;

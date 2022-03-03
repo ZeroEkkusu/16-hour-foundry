@@ -10,9 +10,22 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {DSTest} from "ds-test/test.sol";
 import {stdCheats} from "forge-std/stdlib.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {AuthorityDeployer} from "src/test/utils/AuthorityDeployer.sol";
 import {AddressBook} from "src/test/utils/AddressBook.sol";
 
-contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
+contract DefiantUnitTest is DSTest, stdCheats, AuthorityDeployer, AddressBook {
+    event Updated(
+        address _wethGatewayAddr,
+        address _lendingPoolAddressesProviderAddr,
+        address _lendingPoolAddr,
+        address _protocolDataProviderAddr,
+        address _priceOracleAddr,
+        address _wethAddr,
+        address _aWethAddr,
+        uint256 _lendingPoolWethAllowance,
+        address _swapRouterAddr
+    );
+
     ERC20 weth;
     ERC20 aWeth;
     ERC20 asset;
@@ -49,7 +62,8 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
             WETH_GATEWAY_ADDRESS,
             LENDING_POOL_ADDRESS_PROVIDER_ADDRESS,
             PROTOCOL_DATA_PROVIDER_ADDRESS,
-            SWAP_ROUTER_ADDRESS
+            SWAP_ROUTER_ADDRESS,
+            AUTHORITY_ADDRESS
         );
         tip(WETH_ADDRESS, address(this), wethAmount);
         weth.approve(address(defiant), 2**256 - 1);
@@ -145,13 +159,121 @@ contract DefiantUnitTest is DSTest, stdCheats, AddressBook {
     }
 
     function testCannotCloseShortInsufficientFunds() public {
+        defiant.startEarningWrapped(wethAmount - 1);
+        (, uint256 ltv, , , , , , , , ) = protocolDataProvider
+            .getReserveConfigurationData(address(weth));
+
         vm.expectRevert(
             abi.encodeWithSelector(
                 Defiant.InsufficientFunds.selector,
                 wethAmount,
-                0
+                ((wethAmount - 1) * ltv) / 1e4
             )
         );
         defiant.closeShort(wethAmount, address(asset), 1, 3000);
+    }
+
+    function testUpdate() public {
+        address newWethGatewayAddr = address(999);
+        address newLendingPoolAddressesProviderAddr = address(888);
+        address newLendingPoolAddr = address(777);
+        address newProtocolDataProviderAddr = address(666);
+        address newPriceOracleAddr = address(555);
+        address newWethAddr = address(444);
+        address newAWethAddr = address(333);
+        uint256 newLendingPoolWethAllowance = 0;
+        address newSwapRouterAddr = address(222);
+
+        vm.expectEmit(false, false, false, true);
+        emit Updated(
+            newWethGatewayAddr,
+            newLendingPoolAddressesProviderAddr,
+            newLendingPoolAddr,
+            newProtocolDataProviderAddr,
+            newPriceOracleAddr,
+            newWethAddr,
+            newAWethAddr,
+            newLendingPoolWethAllowance,
+            newSwapRouterAddr
+        );
+        defiant.update(
+            newWethGatewayAddr,
+            newLendingPoolAddressesProviderAddr,
+            newLendingPoolAddr,
+            newProtocolDataProviderAddr,
+            newPriceOracleAddr,
+            newWethAddr,
+            newAWethAddr,
+            newLendingPoolWethAllowance,
+            newSwapRouterAddr
+        );
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(defiant), bytes32(uint256(2)))))
+            ),
+            newWethGatewayAddr
+        );
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(defiant), bytes32(uint256(3)))))
+            ),
+            newLendingPoolAddressesProviderAddr
+        );
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(defiant), bytes32(uint256(4)))))
+            ),
+            newLendingPoolAddr
+        );
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(defiant), bytes32(uint256(5)))))
+            ),
+            newProtocolDataProviderAddr
+        );
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(defiant), bytes32(uint256(6)))))
+            ),
+            newPriceOracleAddr
+        );
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(defiant), bytes32(uint256(7)))))
+            ),
+            newWethAddr
+        );
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(defiant), bytes32(uint256(8)))))
+            ),
+            newAWethAddr
+        );
+        assertEq(
+            weth.allowance(address(defiant), address(LENDING_POOL_ADDRESS)),
+            newLendingPoolWethAllowance
+        );
+        assertEq(
+            address(
+                uint160(uint256(vm.load(address(defiant), bytes32(uint256(9)))))
+            ),
+            newSwapRouterAddr
+        );
+    }
+
+    function testCannotUpdateUnauthorized() public {
+        vm.prank(address(0xBAD));
+        vm.expectRevert(bytes("UNAUTHORIZED"));
+        defiant.update(
+            address(0),
+            address(0),
+            address(0),
+            address(0),
+            address(0),
+            address(0),
+            address(0),
+            0,
+            address(0)
+        );
     }
 }
