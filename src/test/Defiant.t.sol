@@ -34,6 +34,7 @@ contract DefiantUnitTest is DSTest, stdCheats, AuthorityDeployer, AddressBook {
     ERC20 weth;
     ERC20 aWeth;
     ERC20 asset;
+    ERC20 aAsset;
     IDebtToken sdAsset;
     IDebtToken vdAsset;
     IProtocolDataProvider protocolDataProvider;
@@ -51,9 +52,13 @@ contract DefiantUnitTest is DSTest, stdCheats, AuthorityDeployer, AddressBook {
         );
         (address aWethAddr, , ) = protocolDataProvider
             .getReserveTokensAddresses(WETH_ADDRESS);
-        (, address sdAssetAddr, address vdAssetAddr) = protocolDataProvider
-            .getReserveTokensAddresses(address(asset));
+        (
+            address aAssetAddr,
+            address sdAssetAddr,
+            address vdAssetAddr
+        ) = protocolDataProvider.getReserveTokensAddresses(address(asset));
         aWeth = ERC20(aWethAddr);
+        aAsset = ERC20(aAssetAddr);
         sdAsset = IDebtToken(sdAssetAddr);
         vdAsset = IDebtToken(vdAssetAddr);
     }
@@ -103,13 +108,13 @@ contract DefiantUnitTest is DSTest, stdCheats, AuthorityDeployer, AddressBook {
         IDebtToken dAsset = interestRateMode == 1 ? sdAsset : vdAsset;
         uint256 prevBalance = aWeth.balanceOf(address(this));
 
-        defiant.openShort(
+        defiant.openShort____1l(
             amountInWethToShort,
             address(asset),
             interestRateMode,
             UNISWAP_POOL_FEE
         );
-        (uint256 assetAmount, ) = defiant.calculateAmount(
+        (uint256 assetAmount, ) = defiant.calculateAmount_tb_(
             amountInWethToShort,
             address(asset)
         );
@@ -121,6 +126,18 @@ contract DefiantUnitTest is DSTest, stdCheats, AuthorityDeployer, AddressBook {
         defiant.startEarningWrapped(SOME_WETH_AMOUNT - 1);
         (, uint256 ltv, , , , , , , , ) = protocolDataProvider
             .getReserveConfigurationData(address(weth));
+        // Deposit LINK to ensure only aWETH is considered when assesing borrowing power
+        tip(LINK_ADDRESS, address(this), 1000e18);
+        (bool sent, ) = LENDING_POOL_ADDRESS.call(
+            abi.encodeWithSelector(
+                0xe8eda9df,
+                LINK_ADDRESS,
+                1000e18,
+                address(this),
+                0
+            )
+        );
+        require(sent);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -129,7 +146,7 @@ contract DefiantUnitTest is DSTest, stdCheats, AuthorityDeployer, AddressBook {
                 ((SOME_WETH_AMOUNT - 1) * ltv) / 1e4
             )
         );
-        defiant.openShort(SOME_WETH_AMOUNT, address(asset), 1, 3000);
+        defiant.openShort____1l(SOME_WETH_AMOUNT, address(asset), 1, 3000);
     }
 
     function testCloseShort() public {
@@ -139,28 +156,41 @@ contract DefiantUnitTest is DSTest, stdCheats, AuthorityDeployer, AddressBook {
         // You can customize the amount in WETH to short
         uint256 amountInWethToShort = SOME_WETH_AMOUNT / 10;
         IDebtToken dAsset = interestRateMode == 1 ? sdAsset : vdAsset;
-        defiant.openShort(
+        defiant.openShort____1l(
             amountInWethToShort,
             address(asset),
             interestRateMode,
             UNISWAP_POOL_FEE
         );
-        (, uint256 assetPrice) = defiant.calculateAmount(0, address(asset));
+        (, uint256 assetPrice) = defiant.calculateAmount_tb_(0, address(asset));
         uint256 dAmount = dAsset.balanceOf(address(this));
 
-        defiant.closeShort(
+        defiant.closeShort___h6U(
             ((dAmount * assetPrice) * 1010) / 1e21,
             address(asset),
             interestRateMode,
             UNISWAP_POOL_FEE
         );
         assertEq(dAsset.balanceOf(address(this)), 0);
+        assertGe(aAsset.balanceOf(address(this)), 0);
     }
 
     function testCannotCloseShortInsufficientFunds() public {
         defiant.startEarningWrapped(SOME_WETH_AMOUNT - 1);
         (, uint256 ltv, , , , , , , , ) = protocolDataProvider
             .getReserveConfigurationData(address(weth));
+        // Deposit LINK to ensure only aWETH is considered when assesing borrowing power
+        tip(LINK_ADDRESS, address(this), 1000e18);
+        (bool sent, ) = LENDING_POOL_ADDRESS.call(
+            abi.encodeWithSelector(
+                0xe8eda9df,
+                LINK_ADDRESS,
+                1000e18,
+                address(this),
+                0
+            )
+        );
+        require(sent);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -169,7 +199,7 @@ contract DefiantUnitTest is DSTest, stdCheats, AuthorityDeployer, AddressBook {
                 ((SOME_WETH_AMOUNT - 1) * ltv) / 1e4
             )
         );
-        defiant.closeShort(SOME_WETH_AMOUNT, address(asset), 1, 3000);
+        defiant.closeShort___h6U(SOME_WETH_AMOUNT, address(asset), 1, 3000);
     }
 
     function testUpdate() public {
@@ -195,7 +225,7 @@ contract DefiantUnitTest is DSTest, stdCheats, AuthorityDeployer, AddressBook {
             newLendingPoolWethAllowance,
             newSwapRouterAddr
         );
-        defiant.update(
+        defiant.update_Xx(
             newWethGatewayAddr,
             newLendingPoolAddressesProviderAddr,
             newLendingPoolAddr,
@@ -263,7 +293,7 @@ contract DefiantUnitTest is DSTest, stdCheats, AuthorityDeployer, AddressBook {
     function testCannotUpdateUnauthorized() public {
         vm.prank(address(0xBAD));
         vm.expectRevert(bytes("UNAUTHORIZED"));
-        defiant.update(
+        defiant.update_Xx(
             address(0),
             address(0),
             address(0),
@@ -305,9 +335,11 @@ contract DefiantIntegrationTest is
     ERC20 weth;
     ERC20 aWeth;
     ERC20 asset1;
+    ERC20 aAsset1;
     IDebtToken sdAsset1;
     IDebtToken vdAsset1;
     ERC20 asset2;
+    ERC20 aAsset2;
     IDebtToken sdAsset2;
     IDebtToken vdAsset2;
     IProtocolDataProvider protocolDataProvider;
@@ -327,11 +359,19 @@ contract DefiantIntegrationTest is
         );
         (address aWethAddr, , ) = protocolDataProvider
             .getReserveTokensAddresses(WETH_ADDRESS);
-        (, address sdAsset1Addr, address vdAsset1Addr) = protocolDataProvider
-            .getReserveTokensAddresses(address(asset1));
-        (, address sdAsset2Addr, address vdAsset2Addr) = protocolDataProvider
-            .getReserveTokensAddresses(address(asset2));
+        (
+            address aAsset1Addr,
+            address sdAsset1Addr,
+            address vdAsset1Addr
+        ) = protocolDataProvider.getReserveTokensAddresses(address(asset1));
+        (
+            address aAsset2Addr,
+            address sdAsset2Addr,
+            address vdAsset2Addr
+        ) = protocolDataProvider.getReserveTokensAddresses(address(asset2));
         aWeth = ERC20(aWethAddr);
+        aAsset1 = ERC20(aAsset1Addr);
+        aAsset2 = ERC20(aAsset2Addr);
         sdAsset1 = IDebtToken(sdAsset1Addr);
         vdAsset1 = IDebtToken(vdAsset1Addr);
         sdAsset2 = IDebtToken(sdAsset2Addr);
@@ -374,24 +414,24 @@ contract DefiantIntegrationTest is
 
         uint256 prevBalanceAlice = aWeth.balanceOf(alice);
 
-        defiant.openShort(
+        defiant.openShort____1l(
             amountInWethToShort,
             DAI_ADDRESS,
             interestRateMode1,
             UNISWAP_POOL_FEE_1
         );
-        defiant.openShort(
+        defiant.openShort____1l(
             amountInWethToShort,
             WBTC_ADDRESS,
             interestRateMode2,
             UNISWAP_POOL_FEE_2
         );
 
-        (uint256 asset1Amount, ) = defiant.calculateAmount(
+        (uint256 asset1Amount, ) = defiant.calculateAmount_tb_(
             amountInWethToShort,
             address(asset1)
         );
-        (uint256 asset2Amount, ) = defiant.calculateAmount(
+        (uint256 asset2Amount, ) = defiant.calculateAmount_tb_(
             amountInWethToShort,
             address(asset2)
         );
@@ -402,24 +442,32 @@ contract DefiantIntegrationTest is
         assertGe(dAmount2, asset2Amount);
         assertGe(aWeth.balanceOf(alice), (prevBalanceAlice * 9800) / 1e4);
 
-        (, uint256 asset1Price) = defiant.calculateAmount(0, address(asset1));
-        (, uint256 asset2Price) = defiant.calculateAmount(0, address(asset2));
+        (, uint256 asset1Price) = defiant.calculateAmount_tb_(
+            0,
+            address(asset1)
+        );
+        (, uint256 asset2Price) = defiant.calculateAmount_tb_(
+            0,
+            address(asset2)
+        );
 
-        defiant.closeShort(
+        defiant.closeShort___h6U(
             ((dAmount1 * asset1Price) * 1010) / 1e21,
             address(asset1),
             interestRateMode1,
             UNISWAP_POOL_FEE_1
         );
         assertEq(dAsset1.balanceOf(alice), 0);
+        assertGe(aAsset1.balanceOf(address(this)), 0);
 
-        defiant.closeShort(
+        defiant.closeShort___h6U(
             ((dAmount2 * asset2Price) * 1010) / 1e21,
             address(asset2),
             interestRateMode2,
             UNISWAP_POOL_FEE_2
         );
         assertEq(dAsset2.balanceOf(alice), 0);
+        assertGe(aAsset2.balanceOf(address(this)), 0);
 
         vm.stopPrank();
 
@@ -445,7 +493,7 @@ contract DefiantIntegrationTest is
             newLendingPoolWethAllowance,
             newSwapRouterAddr
         );
-        defiant.update(
+        defiant.update_Xx(
             newWethGatewayAddr,
             newLendingPoolAddressesProviderAddr,
             newLendingPoolAddr,
