@@ -100,7 +100,11 @@ contract Defiant is Auth {
         returns (uint256, uint256)
     {
         uint256 assetPrice = priceOracle.getAssetPrice(assetAddr);
-        return ((ethAmount * 1e18) / assetPrice, assetPrice);
+        uint256 decimalsToAdd = 18 - ERC20(assetAddr).decimals();
+        return (
+            (ethAmount * 1e18) / (assetPrice * 10**decimalsToAdd),
+            assetPrice * 10**decimalsToAdd
+        );
     }
 
     /// @dev The calling address must approve this contract to borrow
@@ -142,24 +146,31 @@ contract Defiant is Auth {
             );
         }
 
-        (uint256 amount, uint256 assetPrice) = calculateAmount(
+        (uint256 assetAmount, uint256 assetPrice) = calculateAmount(
             ethAmount,
             assetAddr
         );
 
-        lendingPool.borrow(assetAddr, amount, interestRateMode, 0, msg.sender);
+        lendingPool.borrow(
+            assetAddr,
+            assetAmount,
+            interestRateMode,
+            0,
+            msg.sender
+        );
 
         uint256 _ethAmount = swapExactInputSingle(
             assetAddr,
-            amount,
+            assetAmount,
             wethAddr,
-            (amount * assetPrice * 9900) / 1e22,
+            (assetAmount * assetPrice * 9800) / 1e22,
             uniswapPoolFee
         );
 
         lendingPool.deposit(wethAddr, _ethAmount, msg.sender, 0);
     }
 
+    /// @notice When closing the entire position, pass a bit higher `ethAmount`
     /// @dev The calling address must approve this contract to spend
     /// @dev at least `ethAmount` worth of its aWETH to be able to close a short
     function closeShort(

@@ -22,6 +22,7 @@ abstract contract AddressBook {
     // TOKENS
     address immutable WETH_ADDRESS;
     address immutable DAI_ADDRESS;
+    address immutable WBTC_ADDRESS;
 
     constructor() {
         // Chainlink
@@ -39,7 +40,8 @@ abstract contract AddressBook {
         address swapRouterAddr;
         // tokens
         address daiAddr;
-        address wethAddr; // TODO
+        address wethAddr;
+        address wbtcAddr;
 
         uint256 id = block.chainid;
 
@@ -61,6 +63,7 @@ abstract contract AddressBook {
             // tokens
             wethAddr = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
             daiAddr = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+            wbtcAddr = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
         }
 
         // YOU CAN ADD MORE CHAINS ABOVE THIS LINE
@@ -81,5 +84,6 @@ abstract contract AddressBook {
         // token
         WETH_ADDRESS = wethAddr;
         DAI_ADDRESS = daiAddr;
+        WBTC_ADDRESS = wbtcAddr;
     }
 }
