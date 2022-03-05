@@ -13,6 +13,7 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Auth, Authority} from "solmate/auth/Auth.sol";
 
+/// @title Defiant
 /// @notice Short assets with ETH and earn passive income
 contract Defiant is Auth {
     error InsufficientFunds(uint256 amount, uint256 maxAmount);
@@ -39,6 +40,10 @@ contract Defiant is Auth {
 
     ISwapRouter internal swapRouter;
 
+    /// @dev Passing every value manually would be cheaper;
+    /// @dev for the sake of learning, we'll let the constructor
+    /// @dev fetch some values automatically
+    /// @dev
     /// @dev Do not send money to the constructor
     /// @dev Optimized for lower deployment cost
     constructor(
@@ -65,11 +70,13 @@ contract Defiant is Auth {
             .getReserveTokensAddresses(address(weth));
         aWeth = ERC20(aWethAddr);
 
+        // We need to approve the lending pool to use our WETH
         SafeTransferLib.safeApprove(weth, address(lendingPool), 2**256 - 1);
 
         swapRouter = ISwapRouter(swapRouterAddr);
     }
 
+    /// @notice Start earning passive income with ETH
     function startEarning() public payable {
         wethGateway.depositETH{value: msg.value}(
             address(lendingPool),
@@ -78,11 +85,12 @@ contract Defiant is Auth {
         );
     }
 
+    /// @notice Start earning passive income with WETH
     /// @dev The calling address must approve this contract to spend
-    /// @dev at least `amount` worth of its WETH to be able to deposit WETH
+    /// @dev at least `amount` worth of its WETH to be able to deposit it
     function startEarningWrapped(uint256 amount) public {
         uint256 wethBalance = weth.balanceOf(msg.sender);
-        if (wethBalance < amount) revert InsufficientFunds(amount, wethBalance);
+        if (amount > wethBalance) revert InsufficientFunds(amount, wethBalance);
 
         SafeTransferLib.safeTransferFrom(
             weth,
@@ -94,12 +102,15 @@ contract Defiant is Auth {
         lendingPool.deposit(address(weth), amount, msg.sender, 0);
     }
 
-    function calculateAmount(uint256 ethAmount, address assetAddr)
+    /// @notice Pass an amount in ETH to calculate the amount of an asset
+    function calculateAmount_tb_(uint256 ethAmount, address assetAddr)
         public
         view
         returns (uint256, uint256)
     {
         uint256 assetPrice = priceOracle.getAssetPrice(assetAddr);
+        // Correct the number of decimal places to 18 if the asset
+        // has less than 18 decimal places
         uint256 decimalsToAdd = 18 - ERC20(assetAddr).decimals();
         return (
             (ethAmount * 1e18) / (assetPrice * 10**decimalsToAdd),
@@ -107,10 +118,11 @@ contract Defiant is Auth {
         );
     }
 
+    /// @notice Open a short position
     /// @dev The calling address must approve this contract to borrow
-    /// @dev at least `ethAmount / asset price in ETH` worth of the asset
+    /// @dev at least `ethAmount / assetPrice` worth of the asset
     /// @dev to be able to open a short
-    function openShort(
+    function openShort____1l(
         uint256 ethAmount,
         address assetAddr,
         uint256 interestRateMode,
@@ -131,11 +143,13 @@ contract Defiant is Auth {
             bool wethUsageAsCollateralEnabled
         ) = protocolDataProvider.getUserReserveData(wethAddr, msg.sender);
 
-        // Defiant uses only aWETH for borrowing!
+        // Defiant uses only aWETH for borrowing
         if (!wethUsageAsCollateralEnabled) {
             revert InsufficientFunds(ethAmount, 0);
         }
 
+        // Revert if `msg.sender` does not have enough aWETH
+        // or borrowing power
         uint256 aWethBalance = aWeth.balanceOf(msg.sender);
         if (ethAmount > availableBorrowsETH) {
             revert InsufficientFunds(
@@ -146,11 +160,12 @@ contract Defiant is Auth {
             );
         }
 
-        (uint256 assetAmount, uint256 assetPrice) = calculateAmount(
+        (uint256 assetAmount, uint256 assetPrice) = calculateAmount_tb_(
             ethAmount,
             assetAddr
         );
 
+        // Borrow the asset
         lendingPool.borrow(
             assetAddr,
             assetAmount,
@@ -159,21 +174,25 @@ contract Defiant is Auth {
             msg.sender
         );
 
+        // Sell the asset for WETH
         uint256 _ethAmount = swapExactInputSingle(
             assetAddr,
             assetAmount,
             wethAddr,
+            // Allow max slippage 2%
             (assetAmount * assetPrice * 9800) / 1e22,
             uniswapPoolFee
         );
 
+        // Continue earning passive income on WETH
         lendingPool.deposit(wethAddr, _ethAmount, msg.sender, 0);
     }
 
-    /// @notice When closing the entire position, pass a bit higher `ethAmount`
+    /// @notice Close a short position
+    /// @notice Pass a bit higher `ethAmount` when closing an entire position
     /// @dev The calling address must approve this contract to spend
     /// @dev at least `ethAmount` worth of its aWETH to be able to close a short
-    function closeShort(
+    function closeShort___h6U(
         uint256 ethAmount,
         address assetAddr,
         uint256 interestRateMode,
@@ -182,7 +201,6 @@ contract Defiant is Auth {
         address wethAddr = address(weth);
         ERC20 _aWeth = aWeth;
         uint256 aWethBalance = _aWeth.balanceOf(msg.sender);
-
         (
             ,
             ,
@@ -194,10 +212,11 @@ contract Defiant is Auth {
             ,
             bool wethUsageAsCollateralEnabled
         ) = protocolDataProvider.getUserReserveData(wethAddr, msg.sender);
-
         (, , uint256 availableBorrowsETH, , , ) = lendingPool
             .getUserAccountData(msg.sender);
-        // `ethAmount` cannot be greater than how much `msg.sender`'s aWeth can be withdrawn!
+
+        // Revert if `msg.sender` does not have enough aWETH
+        // or borrowing power (to withdraw `ethAmount`)
         if (
             ethAmount > aWethBalance ||
             (wethUsageAsCollateralEnabled && ethAmount > availableBorrowsETH)
@@ -214,6 +233,7 @@ contract Defiant is Auth {
             );
         }
 
+        // We need to transfer aWETH to this contract to withdraw it
         SafeTransferLib.safeTransferFrom(
             _aWeth,
             msg.sender,
@@ -223,22 +243,26 @@ contract Defiant is Auth {
 
         lendingPool.withdraw(wethAddr, ethAmount, address(this));
 
-        (uint256 assetAmount, ) = calculateAmount(ethAmount, assetAddr);
+        (uint256 assetAmount, ) = calculateAmount_tb_(ethAmount, assetAddr);
 
+        // Sell WETH for the asset
         uint256 _assetAmount = swapExactInputSingle(
             wethAddr,
             ethAmount,
             assetAddr,
-            (assetAmount * 9900) / 1e22,
+            // Allow max slippage 2%
+            (assetAmount * 9800) / 1e22,
             uniswapPoolFee
         );
 
+        // We need to approve the lending pool to use our asset
         SafeTransferLib.safeApprove(
             ERC20(assetAddr),
             address(lendingPool),
             _assetAmount
         );
 
+        // Repay debt
         lendingPool.repay(
             assetAddr,
             _assetAmount,
@@ -246,6 +270,8 @@ contract Defiant is Auth {
             msg.sender
         );
 
+        // If there is any remainder after repaying,
+        // start earning passive income on it
         lendingPool.deposit(
             assetAddr,
             ERC20(assetAddr).balanceOf(address(this)),
@@ -254,6 +280,7 @@ contract Defiant is Auth {
         );
     }
 
+    /// @notice Uniswap: swap an amount of `_tokenIn` for the max amount of `_tokenOut`
     /// @dev The calling address must approve this contract to spend
     /// @dev at least `_amountIn` worth of its `_tokenIn` for this function to succeed
     function swapExactInputSingle(
@@ -263,6 +290,7 @@ contract Defiant is Auth {
         uint256 _amountOutMinimum,
         uint24 _fee
     ) internal returns (uint256 amountOut) {
+        // We need to approve the swap router to use our `_tokenIn`
         SafeTransferLib.safeApprove(
             ERC20(_tokenIn),
             address(swapRouter),
@@ -284,7 +312,7 @@ contract Defiant is Auth {
         amountOut = swapRouter.exactInputSingle(params);
     }
 
-    function update(
+    function update_Xx(
         address _wethGatewayAddr,
         address _lendingPoolAddressesProviderAddr,
         address _lendingPoolAddr,
