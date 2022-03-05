@@ -13,27 +13,24 @@ import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
+    // You can customize the minimum amount in USD
+    uint256 constant MINIMUM_AMOUNT_IN_USD = 50e18;
+    // You can customize the price of ETH in USD
+    uint256 constant ETH_PRICE_IN_USD = 1000e18;
+
     event Withdrawal(uint256 amount);
     event Updated(uint256 _minimumAmountInUsd, address _ethUsdPriceFeedAddr);
 
     FundMe fundMe;
 
-    uint256 minimumAmountInUsd;
-    uint256 ethPriceInUsd;
-
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
-        // You can customize the minimum amount in USD
-        minimumAmountInUsd = 50e18;
-        // You can customize the price of ETH in USD
-        ethPriceInUsd = 1000e18;
-
         address ethUsdPriceFeedAddr = address(
-            new MockV3Aggregator(8, int256(ethPriceInUsd / 1e10))
+            new MockV3Aggregator(8, int256(ETH_PRICE_IN_USD / 1e10))
         );
         fundMe = new FundMe(
-            minimumAmountInUsd,
+            MINIMUM_AMOUNT_IN_USD,
             ethUsdPriceFeedAddr,
             AUTHORITY_ADDRESS
         );
@@ -42,7 +39,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     function testgetMinimumAmount() public {
         assertEq(
             fundMe.getMinimumAmount__8X(),
-            (minimumAmountInUsd * 1e18) / ethPriceInUsd
+            (MINIMUM_AMOUNT_IN_USD * 1e18) / ETH_PRICE_IN_USD
         );
     }
 
@@ -91,7 +88,7 @@ contract FundMeUnitTest is DSTest, AuthorityDeployer, EthReceiver {
     }
 
     function testUpdate() public {
-        uint256 newMinimumAmountInUsd = minimumAmountInUsd * 2;
+        uint256 newMinimumAmountInUsd = MINIMUM_AMOUNT_IN_USD * 2;
         address newEthUsdPriceFeedAddr = address(999);
 
         vm.expectEmit(false, false, false, true);

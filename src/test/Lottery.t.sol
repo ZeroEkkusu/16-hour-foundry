@@ -15,6 +15,15 @@ import {EthReceiver} from "src/test/utils/EthReceiver.sol";
 import {AddressBook} from "src/test/utils/AddressBook.sol";
 
 contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
+    // You can customize the entry fee in USD
+    uint256 constant ENTRY_FEE_IN_USD = 50e18;
+    // You can customize the price of ETH in USD
+    uint256 constant ETH_PRICE_IN_USD = 1000e18;
+    // You can customize the randomness
+    uint256 constant RANDOMNESS = 1337;
+    // You can customize the fee paid in LINK for randomness
+    uint256 constant FEE = 1e18;
+
     event WinnerSelected(address indexed winner, uint256 prize);
     event Updated(
         uint256 _entryFeeInUsd,
@@ -24,35 +33,22 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     );
 
     Lottery lottery;
-    uint256 entryFeeInUsd;
 
     LinkToken link;
-    uint256 ethPriceInUsd;
     MockVRFCoordinator vrfCoordinator;
-    uint256 randomness;
-    uint256 fee;
 
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
-        // You can customize the entry fee in USD
-        entryFeeInUsd = 50e18;
-        // You can customize the price of ETH in USD
-        ethPriceInUsd = 1000e18;
-        // You can customize the randomness
-        randomness = 1337;
-        // You can customize the fee paid in LINK for randomness
-        fee = 1e18;
-
         address ethUsdPriceFeedAddr = address(
-            new MockV3Aggregator(8, int256(ethPriceInUsd / 1e10))
+            new MockV3Aggregator(8, int256(ETH_PRICE_IN_USD / 1e10))
         );
         link = new LinkToken();
         vrfCoordinator = new MockVRFCoordinator(address(link));
         lottery = new Lottery(
-            entryFeeInUsd,
+            ENTRY_FEE_IN_USD,
             ethUsdPriceFeedAddr,
-            fee,
+            FEE,
             bytes32(0),
             address(vrfCoordinator),
             address(link),
@@ -86,7 +82,7 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     function testGetEntryFee() public {
         assertEq(
             lottery.getEntryFee_3_4iR(),
-            (entryFeeInUsd * 1e18) / ethPriceInUsd
+            (ENTRY_FEE_IN_USD * 1e18) / ETH_PRICE_IN_USD
         );
     }
 
@@ -126,7 +122,7 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
 
     function testEndLottery() public {
         lottery.startLottery();
-        link.transfer(address(lottery), fee);
+        link.transfer(address(lottery), FEE);
 
         lottery.endLottery();
         assertTrue(
@@ -151,9 +147,9 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
             hoax(address(i), entryFee);
             lottery.enter_Wrc{value: entryFee}();
         }
-        link.transfer(address(lottery), fee);
+        link.transfer(address(lottery), FEE);
         lottery.endLottery();
-        address expectedWinner = lottery.players(randomness % numOfPlayers);
+        address expectedWinner = lottery.players(RANDOMNESS % numOfPlayers);
         uint256 prize = address(lottery).balance;
         uint256 prevBalance = expectedWinner.balance;
 
@@ -161,7 +157,7 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
         emit WinnerSelected(expectedWinner, prize);
         vrfCoordinator.callBackWithRandomness(
             bytes32(0),
-            randomness,
+            RANDOMNESS,
             address(lottery)
         );
         assertEq(expectedWinner.balance, prevBalance + prize);
@@ -183,9 +179,9 @@ contract LotteryUnitTest is DSTest, stdCheats, AuthorityDeployer {
     }
 
     function testUpdate() public {
-        uint256 newEntryFeeInUsd = entryFeeInUsd * 2;
+        uint256 newEntryFeeInUsd = ENTRY_FEE_IN_USD * 2;
         address newEthUsdPriceFeedAddr = address(999);
-        uint256 newFee = fee * 2;
+        uint256 newFee = FEE * 2;
         bytes32 newKeyHash = bytes32(uint256(1));
 
         vm.expectEmit(false, false, false, true);
@@ -227,6 +223,9 @@ contract LotteryIntegrationTest is
     AuthorityDeployer,
     AddressBook
 {
+    // You can customize the randomness
+    uint256 constant RANDOMNESS = 1337;
+
     event WinnerSelected(address indexed winner, uint256 prize);
     event Updated(
         uint256 _entryFeeInUsd,
@@ -236,16 +235,12 @@ contract LotteryIntegrationTest is
     );
 
     Lottery lottery;
-    uint256 randomness;
 
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
         // You can customize the entry fee in USD
         uint256 entryFeeInUsd = 50;
-        // You can customize the randomness
-        randomness = 1337;
-
         lottery = new Lottery(
             entryFeeInUsd,
             ETHUSD_PRICE_FEED_ADDRESS,
@@ -279,7 +274,7 @@ contract LotteryIntegrationTest is
 
         lottery.endLottery();
 
-        address expectedWinner = lottery.players(randomness % numOfPlayers);
+        address expectedWinner = lottery.players(RANDOMNESS % numOfPlayers);
         uint256 prevBalance = address(expectedWinner).balance;
         uint256 prize = address(lottery).balance;
 
@@ -287,7 +282,7 @@ contract LotteryIntegrationTest is
         emit WinnerSelected(expectedWinner, prize);
 
         vm.prank(VRF_COORDINATOR_ADDRESS);
-        lottery.rawFulfillRandomness(bytes32(0), randomness);
+        lottery.rawFulfillRandomness(bytes32(0), RANDOMNESS);
 
         assertEq(expectedWinner.balance, prevBalance + prize);
         assertTrue(lottery.lotteryState() == Lottery.LOTTERY_STATE.CLOSED);
