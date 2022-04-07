@@ -8,9 +8,9 @@ import {DSTest} from "ds-test/test.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 contract SoulboundTest is DSTest {
-    event Updated(address _ensAddr);
+    event Updated(address ensAddr);
 
-    address constant ENS_ADDR = 0x314159265dD8dbb310642f98f50C066173C1259b;
+    address constant ENS_ADDRESS = 0x314159265dD8dbb310642f98f50C066173C1259b;
     bytes32 constant NAMEHASH =
         0xee6c4522aab0003e8d14cd40a6af439055fd2577951148c14b6cea9a53475835;
     address constant OWNER_ADDRESS = 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045;
@@ -20,7 +20,7 @@ contract SoulboundTest is DSTest {
     Vm vm = Vm(HEVM_ADDRESS);
 
     function setUp() public {
-        soulbound = new Soulbound(NAMEHASH, ENS_ADDR);
+        soulbound = new Soulbound(NAMEHASH, ENS_ADDRESS);
     }
 
     function testName() public {

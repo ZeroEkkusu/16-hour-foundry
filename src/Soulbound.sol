@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.4;
 
-/// @notice Soulbound NFT contract based on Vitalik Buterin's
+/// @notice Soulbound NFT contract based on Vitalik Buterin's blog post
 /// @notice https://vitalik.ca/general/2022/01/26/soulbound.html
-/// @dev The Soulbound ERC standard does not exists yet!
+/// @dev The Soulbound ERC standard does not exist yet!
 contract Soulbound {
     error TokenIdCannotBeNonZero();
     error InvalidForSoulbound();
@@ -12,7 +12,7 @@ contract Soulbound {
     error EnsCallFailed();
     error ResolverCallFailed();
 
-    event Updated(address _ensAddr);
+    event Updated(address ensAddr);
     event Transfer(
         address indexed _from,
         address indexed _to,
@@ -126,8 +126,8 @@ contract Soulbound {
             abi.encodeWithSignature("addr(bytes32)", namehash)
         );
         if (!success) revert ResolverCallFailed();
-        address owner = abi.decode(data, (address));
-        return owner;
+        address ownerAddr = abi.decode(data, (address));
+        return ownerAddr;
     }
 
     function update(address _ensAddr) external {

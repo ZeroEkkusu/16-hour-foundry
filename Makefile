@@ -1,52 +1,58 @@
+
+# Export environment variables
 -include .env
 
 
-# Update libs
-update :; forge update
-
-
-# Test all
+# Test all contracts
 test:
-	make -s test-fundme
-	make -s test-lottery
-	make -s test-tokenico
-	make -s test-defiantaave
+	make -s test-FundMe
+	make -s test-Lottery
+	make -s test-TokenIco
+	make -s test-Defiant
+	make -s test-Soulbound
 
 # Test FundMe
-test-fundme:
-	make -s unit-test-fundme
-	make -s integration-test-fundme
+test-FundMe:
+	make -s unit-test-FundMe
+	make -s integration-test-FundMe
 
 # Test Lottery
-test-lottery:
-	make -s unit-test-lottery
-	make -s integration-test-lottery
+test-Lottery:
+	make -s unit-test-Lottery
+	make -s integration-test-Lottery
 
 # Test TokenIco
-test-tokenico:
-	make -s unit-test-tokenico
-	make -s integration-test-tokenico
+test-TokenIco:
+	make -s unit-test-TokenIco
+	make -s integration-test-TokenIco
 
 # Test Defiant
-test-defiantaave:
-	make -s unit-test-defiant
-	make -s integration-test-defiant
+test-Defiant:
+	make -s unit-test-Defiant
+	make -s integration-test-Defiant
+
+#Test Soulbound
+test-Soulbound:
+	make -s unit-test-Soulbound
 
 # Run unit or integration tests for FundMe
-unit-test-fundme :; make -s all-unit-tests c=FundMe
-integration-test-fundme :; make -s all-integration-tests c=FundMe
+unit-test-FundMe :; make -s all-unit-tests c=FundMe
+integration-test-FundMe :; make -s all-integration-tests c=FundMe
 
 # Run unit or integration tests for Lottery
-unit-test-lottery :; make -s all-unit-tests c=Lottery
-integration-test-lottery :; make -s all-integration-tests c=Lottery
+unit-test-Lottery :; make -s all-unit-tests c=Lottery
+integration-test-Lottery :; make -s all-integration-tests c=Lottery
 
 # Run unit or integration tests for TokenIco
-unit-test-tokenico :; make -s all-unit-tests c=TokenIco
-integration-test-tokenico :; make -s all-integration-tests c=TokenIco
+unit-test-TokenIco :; make -s all-unit-tests c=TokenIco
+integration-test-TokenIco :; make -s all-integration-tests c=TokenIco
 
 # Run unit or integration tests for Defiant
-unit-test-defiant :; forge test --match-contract DefiantUnitTest --fork-url $(ETH_RPC_URL)
-integration-test-defiant :; make -s all-integration-tests c=Defiant
+unit-test-Defiant :; forge test --match-contract DefiantUnitTest --fork-url $(ETH_RPC_URL)
+integration-test-Defiant :; make -s all-integration-tests c=Defiant
+
+#Run unit tests for Soulbound
+unit-test-Soulbound :; forge test --match-contract SoulboundTest --fork-url $(ETH_RPC_URL)
 
 
 ####################
