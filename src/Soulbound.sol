@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.4;
 
+/// @notice Bonus contract:
 /// @notice Soulbound NFT contract based on Vitalik Buterin's blog post
 /// @notice https://vitalik.ca/general/2022/01/26/soulbound.html
 /// @dev The Soulbound ERC standard does not exist yet!
@@ -13,6 +14,8 @@ contract Soulbound {
     error ResolverCallFailed();
 
     event Updated(address ensAddr);
+    // We are following the ERC-721 standard even though
+    // we do not need the following events
     event Transfer(
         address indexed _from,
         address indexed _to,
@@ -37,7 +40,7 @@ contract Soulbound {
     bytes32 private immutable namehash;
     address private ensAddr;
 
-    constructor(bytes32 _namehash, address _ensAddr) {
+    constructor(bytes32 _namehash, address _ensAddr) payable {
         namehash = _namehash;
         ensAddr = _ensAddr;
     }
@@ -116,6 +119,7 @@ contract Soulbound {
         ) return true;
     }
 
+    /// @notice Get the current owner of the ENS name this NFT is bound to
     function resolveAddress() private view returns (address) {
         (bool success, bytes memory data) = ensAddr.staticcall(
             abi.encodeWithSignature("resolver(bytes32)", namehash)
